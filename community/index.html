@@ -272,6 +272,7 @@
       loadOpenPolls, getUserVote, castVote, getPollResults,
       loadLeaderboard
     } from '../js/community.js';
+    import '../js/admin-launcher.js';
 
     // ── Tabs ──────────────────────────────────────────────────
     document.querySelectorAll('.tab-bar button').forEach(btn => {
@@ -318,7 +319,6 @@
       const errEl = document.getElementById('auth-error');
       errEl.textContent = '';
 
-      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
       const { supabase } = await import('../js/supabase.js');
 
       if (authMode === 'signup') {
@@ -327,7 +327,6 @@
           options: { data: { username } }
         });
         if (error) { errEl.textContent = error.message; return; }
-        // Insert profile
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await supabase.from('profiles').upsert({ id: session.user.id, username, full_name: username });
@@ -380,7 +379,6 @@
       const posts = await loadPosts();
       if (!posts.length) { feed.innerHTML = '<p style="color:var(--muted)">No posts yet. Be the first!</p>'; return; }
 
-      // Get current user's likes
       let myLikes = new Set();
       if (currentUser) {
         const { supabase } = await import('../js/supabase.js');
@@ -423,23 +421,20 @@
         </div>`;
       }).join('');
 
-      // Like buttons
       feed.querySelectorAll('.like-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!currentUser) { openModal(); return; }
-          const liked = await toggleLike(btn.dataset.id);
+          await toggleLike(btn.dataset.id);
           renderPosts();
         });
       });
 
-      // Comment toggles
       feed.querySelectorAll('.comment-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
           document.getElementById('comments-' + btn.dataset.id).classList.toggle('open');
         });
       });
 
-      // Comment submit
       feed.querySelectorAll('.comment-form button').forEach(btn => {
         btn.addEventListener('click', async () => {
           const input = feed.querySelector(`.comment-form input[data-post="${btn.dataset.post}"]`);
@@ -450,7 +445,6 @@
         });
       });
 
-      // Delete buttons
       feed.querySelectorAll('.delete-post').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this post?')) return;
@@ -460,7 +454,6 @@
       });
     }
 
-    // Post submit
     document.getElementById('post-submit').addEventListener('click', async () => {
       const input = document.getElementById('post-input');
       const text = input.value.trim();
@@ -474,7 +467,7 @@
     async function renderPolls() {
       const container = document.getElementById('polls-container');
       const polls = await loadOpenPolls();
-      if (!polls.length) { container.innerHTML = '<div class="card"><p style="color:var(--muted)">No active polls right now. Check back after the next show!</p></div>'; return; }
+      if (!polls.length) { container.innerHTML = '<div class="card"><p style="color:var(--muted)">No active polls right now.</p></div>'; return; }
 
       const html = await Promise.all(polls.map(async poll => {
         const options = Array.isArray(poll.options) ? poll.options : JSON.parse(poll.options || '[]');
@@ -488,8 +481,7 @@
           const chosen = myVote === opt;
           return `
           <div class="poll-option">
-            <button data-poll="${poll.id}" data-choice="${opt}"
-              ${myVote ? 'disabled' : ''}>
+            <button data-poll="${poll.id}" data-choice="${opt}" ${myVote ? 'disabled' : ''}>
               ${myVote ? `<div class="poll-bar" style="width:${pct}%"></div>` : ''}
               <span class="poll-label">${chosen ? '✓ ' : ''}${opt}</span>
               ${myVote ? `<span class="poll-pct">${pct}%</span>` : ''}
@@ -501,7 +493,7 @@
         <div class="poll-card">
           <div class="poll-question">${poll.question}</div>
           ${optHtml}
-          ${myVote ? `<div class="poll-voted">You voted: ${myVote}</div><div class="poll-total">${total} vote${total !== 1 ? 's' : ''}</div>` : '<div class="poll-voted" style="color:var(--muted)">Sign in to vote</div>'}
+          ${myVote ? `<div class="poll-voted">You voted: ${myVote}</div><div class="poll-total">${total} vote${total!==1?'s':''}</div>` : '<div class="poll-voted" style="color:var(--muted)">Sign in to vote</div>'}
         </div>`;
       }));
 
@@ -510,12 +502,8 @@
       container.querySelectorAll('.poll-option button:not([disabled])').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!currentUser) { openModal(); return; }
-          try {
-            await castVote(btn.dataset.poll, btn.dataset.choice);
-            renderPolls();
-          } catch(e) {
-            console.error(e);
-          }
+          try { await castVote(btn.dataset.poll, btn.dataset.choice); renderPolls(); }
+          catch(e) { console.error(e); }
         });
       });
     }
@@ -527,14 +515,12 @@
       if (!rows.length) { list.innerHTML = '<p style="color:var(--muted)">No data yet.</p>'; return; }
       list.innerHTML = rows.map((r, i) => {
         const rank = i + 1;
-        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+        const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
         return `
         <div class="lb-row">
-          <div class="lb-rank ${rank <= 3 ? 'top' : ''}">${medal}</div>
-          <div class="lb-avatar">${r.avatar_url ? `<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '👤'}</div>
-          <div class="lb-name">${r.username || 'Anonymous'}
-            <span class="lb-badge">${r.show_role}</span>
-          </div>
+          <div class="lb-rank ${rank<=3?'top':''}">${medal}</div>
+          <div class="lb-avatar">${r.avatar_url?`<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:'👤'}</div>
+          <div class="lb-name">${r.username||'Anonymous'} <span class="lb-badge">${r.show_role}</span></div>
           <div class="lb-pts">${r.points_total} pts</div>
         </div>`;
       }).join('');
