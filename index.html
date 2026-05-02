@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newscapes Live</title>
+  <meta name="description" content="Newscapes Live — every Saturday at noon from Newscapes Brewing, Portland ME. Watch live, join the community, support the show.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="container">
+      <nav>
+        <div class="nav-brand">
+          <img class="brand-logo" src="" alt="Newscapes Live logo">
+          <span class="brand-name">Newscapes Live</span>
+        </div>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="community/">Community</a>
+          <a href="support/">Support</a>
+          <a href="admin/" id="admin-link" style="display:none">Admin</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <p id="episode-number"></p>
+      <h1 id="show-title" class="brand-name">Newscapes Live</h1>
+      <p class="subtitle brand-tagline">Every Saturday at Noon</p>
+
+      <div class="countdown-wrapper">
+        <div class="countdown-label">Next Show In</div>
+        <div id="countdown">Loading...</div>
+      </div>
+
+      <br>
+      <div class="venue-tag">
+        📍 <a href="https://maps.google.com/?q=163+Washington+Ave+Portland+ME" target="_blank" rel="noopener">163 Washington Ave, Portland ME</a>
+        &nbsp;·&nbsp; Newscapes Brewing
+      </div>
+
+      <div class="cta-group">
+        <a id="stream-btn" class="btn btn-primary" href="#" target="_blank" rel="noopener">▶ Watch Live</a>
+        <a class="btn btn-outline" href="community/">Join Community</a>
+        <a class="btn btn-paypal" href="https://www.paypal.com/ncp/payment/SQ9X3PE9QF5WC" target="_blank" rel="noopener">💛 Support the Show</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOW INFO -->
+  <section>
+    <div class="container">
+      <div class="section-title">This Week's Show</div>
+      <div class="card">
+        <p id="show-notes">Show details coming soon.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GUESTS -->
+  <section>
+    <div class="container">
+      <div class="section-title">Featured Guests</div>
+      <div class="card">
+        <ul id="guest-list">
+          <li style="color:var(--muted)">Guest announcements coming soon.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUPPORT TIERS -->
+  <section>
+    <div class="container">
+      <div class="section-title">Support the Show</div>
+      <div class="tier-list">
+        <div class="tier-card">
+          <div class="tier-name">⭐ Supporter</div>
+          <div class="tier-desc">Name on the recognition wall</div>
+        </div>
+        <div class="tier-card">
+          <div class="tier-name">🌟 Contributor</div>
+          <div class="tier-desc">Wall listing + show credits</div>
+        </div>
+        <div class="tier-card">
+          <div class="tier-name">💫 Patron</div>
+          <div class="tier-desc">Credits + badge + shoutout</div>
+        </div>
+        <div class="tier-card">
+          <div class="tier-name">🏆 Champion</div>
+          <div class="tier-desc">Full recognition + featured</div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <a class="btn btn-paypal" href="https://www.paypal.com/ncp/payment/SQ9X3PE9QF5WC" target="_blank" rel="noopener">💛 Donate via PayPal</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Newscapes Live &mdash; Every Saturday at Noon &mdash; <a href="https://maps.google.com/?q=163+Washington+Ave+Portland+ME" target="_blank">163 Washington Ave, Portland ME</a></p>
+    <p style="margin-top:.4rem">Presented at <strong>Newscapes Brewing</strong></p>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+
+  <script type="module">
+    import { supabase } from './js/supabase.js';
+    // Show admin link if user is admin
+    supabase.auth.getSession().then(async ({ data }) => {
+      const uid = data?.session?.user?.id;
+      if (!uid) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('show_role')
+        .eq('id', uid)
+        .maybeSingle();
+      if (profile?.show_role === 'admin' || profile?.show_role === 'moderator') {
+        document.getElementById('admin-link').style.display = 'inline';
+      }
+    });
+  </script>
+
+</body>
+</html>

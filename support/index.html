@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support — Newscapes Live</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="nav-brand">
+          <img class="brand-logo" src="" alt="">
+          <span class="brand-name">Newscapes Live</span>
+        </div>
+        <div class="nav-links">
+          <a href="../">Home</a>
+          <a href="../community/">Community</a>
+          <a href="./">Support</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" style="padding:2.5rem 1.25rem 1.5rem">
+    <div class="container">
+      <h1 style="color:var(--accent);margin-bottom:.5rem">Support the Show</h1>
+      <p style="color:var(--muted)">Every contribution keeps Newscapes Live on the air.</p>
+      <br>
+      <a class="btn btn-paypal" href="https://www.paypal.com/ncp/payment/SQ9X3PE9QF5WC" target="_blank" rel="noopener">💛 Donate via PayPal</a>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="section-title">Support Tiers</div>
+      <div class="tier-list">
+        <div class="tier-card"><div class="tier-name">⭐ Supporter</div><div class="tier-desc">Recognition wall listing</div></div>
+        <div class="tier-card"><div class="tier-name">🌟 Contributor</div><div class="tier-desc">Wall + show credits</div></div>
+        <div class="tier-card"><div class="tier-name">💫 Patron</div><div class="tier-desc">Credits + badge + shoutout</div></div>
+        <div class="tier-card"><div class="tier-name">🏆 Champion</div><div class="tier-desc">Full recognition + featured</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="section-title">Recognition Wall</div>
+      <div id="recognition-wall" class="card"><p style="color:var(--muted)">Loading supporters...</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Newscapes Live &mdash; <a href="../">Home</a></p>
+  </footer>
+
+  <script type="module">
+    import { supabase } from '../js/supabase.js';
+    async function loadWall() {
+      const { data } = await supabase
+        .from('recognition_wall')
+        .select('*')
+        .eq('is_visible', true)
+        .order('sort_order', { ascending: true });
+      const el = document.getElementById('recognition-wall');
+      if (!data?.length) { el.innerHTML = '<p style="color:var(--muted)">Be the first to support the show!</p>'; return; }
+      el.innerHTML = data.map(r =>
+        `<div style="padding:.6rem 0;border-bottom:1px solid var(--surface2)">
+          <strong>${r.display_name}</strong>${r.tier ? ' <span style="color:var(--muted);font-size:.85rem">[${r.tier}]</span>' : ''}
+          ${r.recognition_note ? '<br><span style="color:var(--muted);font-size:.88rem">' + r.recognition_note + '</span>' : ''}
+        </div>`
+      ).join('');
+    }
+    loadWall();
+  </script>
+</body>
+</html>

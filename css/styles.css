@@ -1,0 +1,209 @@
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface2: #252525;
+  --accent: #e8b84b;
+  --accent2: #c9943a;
+  --text: #f0f0f0;
+  --muted: #888;
+  --radius: 10px;
+  --max-w: 960px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; display: block; }
+
+.container { max-width: var(--max-w); margin: 0 auto; padding: 0 1.25rem; }
+
+/* ── Header / Nav ─────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.brand-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: none; }
+
+.nav-brand .brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .02em;
+}
+
+.nav-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.nav-links a { color: var(--text); font-size: .95rem; transition: color .2s; }
+.nav-links a:hover { color: var(--accent); text-decoration: none; }
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 4rem 1.25rem 2.5rem;
+  background: linear-gradient(180deg, #1a1200 0%, var(--bg) 100%);
+}
+
+.hero h1 { font-size: 2.5rem; color: var(--accent); margin-bottom: .5rem; }
+.hero .subtitle { color: var(--muted); font-size: 1.05rem; margin-bottom: 1.5rem; }
+
+.countdown-wrapper {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: .6rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+#countdown {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .04em;
+}
+
+.countdown-label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+
+.venue-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: var(--surface2);
+  border-radius: 99px;
+  padding: .3rem .9rem;
+  font-size: .88rem;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+  display: inline-block;
+  padding: .65rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background .2s, transform .1s;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { background: var(--accent2); text-decoration: none; transform: translateY(-1px); }
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+.btn-outline:hover { background: var(--accent); color: #000; text-decoration: none; }
+
+.btn-paypal {
+  background: #0070ba;
+  color: #fff;
+}
+.btn-paypal:hover { background: #005ea6; text-decoration: none; }
+
+.cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+/* ── Cards / Sections ─────────────────────────────────────── */
+section { padding: 3rem 0; }
+section + section { border-top: 1px solid var(--surface2); }
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--surface2);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.card h3 { font-size: 1.1rem; margin-bottom: .4rem; }
+.card p, .card li { color: var(--muted); font-size: .95rem; }
+.card ul { padding-left: 1.2rem; }
+
+/* ── Show Info ────────────────────────────────────────────── */
+#show-title { font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; }
+#episode-number { color: var(--muted); font-size: .9rem; margin-bottom: .75rem; }
+#show-notes { color: var(--muted); font-size: .95rem; margin-bottom: 1rem; }
+
+#guest-list { list-style: none; padding: 0; }
+#guest-list li {
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--surface2);
+  font-size: .95rem;
+}
+#guest-list li:last-child { border-bottom: none; }
+
+/* ── Support / Recognition ────────────────────────────────── */
+.tier-list { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+
+.tier-card {
+  flex: 1;
+  min-width: 160px;
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+}
+
+.tier-card .tier-name { font-weight: 700; color: var(--accent); font-size: 1rem; }
+.tier-card .tier-desc { font-size: .82rem; color: var(--muted); margin-top: .3rem; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--surface2);
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+footer a { color: var(--accent); }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .hero h1 { font-size: 1.8rem; }
+  nav { flex-direction: column; align-items: flex-start; }
+  .tier-list { flex-direction: column; }
+}

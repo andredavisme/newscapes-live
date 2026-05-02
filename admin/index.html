@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Newscapes Live</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <div class="nav-brand">
+          <span class="brand-name">Newscapes Live — Admin</span>
+        </div>
+        <div class="nav-links">
+          <a href="../">Home</a>
+          <span id="user-email" style="color:var(--muted);font-size:.85rem"></span>
+          <button class="btn btn-outline" id="signout-btn" style="padding:.3rem .8rem;font-size:.85rem">Sign Out</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section style="padding:2rem 0">
+    <div class="container">
+      <div id="auth-gate">
+        <div class="card" style="max-width:360px;margin:2rem auto;text-align:center">
+          <h2 style="color:var(--accent);margin-bottom:1rem">Admin Sign In</h2>
+          <input id="email-input" type="email" placeholder="Email" style="width:100%;padding:.6rem;border-radius:6px;border:1px solid var(--surface2);background:var(--surface2);color:var(--text);margin-bottom:.6rem">
+          <input id="pass-input" type="password" placeholder="Password" style="width:100%;padding:.6rem;border-radius:6px;border:1px solid var(--surface2);background:var(--surface2);color:var(--text);margin-bottom:1rem">
+          <button class="btn btn-primary" id="signin-btn" style="width:100%">Sign In</button>
+          <p id="auth-error" style="color:#e05;margin-top:.5rem;font-size:.85rem"></p>
+        </div>
+      </div>
+
+      <div id="admin-panel" style="display:none">
+        <div class="section-title">Admin Dashboard</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:1rem">
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem">📅</div>
+            <h3>Shows</h3>
+            <p>Schedule &amp; manage episodes</p>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem">🎤</div>
+            <h3>Guests</h3>
+            <p>Book and confirm guests</p>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem">🎨</div>
+            <h3>Branding</h3>
+            <p>Logo, tagline, media links</p>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem">📊</div>
+            <h3>Polls</h3>
+            <p>Create &amp; manage polls</p>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem">💛</div>
+            <h3>Supporters</h3>
+            <p>Donations &amp; recognition wall</p>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:2rem">👥</div>
+            <h3>Users</h3>
+            <p>Roles &amp; community members</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Newscapes Live Admin &mdash; <a href="../">Back to Site</a></p>
+  </footer>
+
+  <script type="module">
+    import { supabase } from '../js/supabase.js';
+
+    async function checkAuth() {
+      const { data } = await supabase.auth.getSession();
+      const uid = data?.session?.user?.id;
+      if (!uid) return;
+      const { data: profile } = await supabase.from('profiles').select('show_role').eq('id', uid).maybeSingle();
+      if (profile?.show_role === 'admin' || profile?.show_role === 'moderator') {
+        document.getElementById('auth-gate').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        document.getElementById('user-email').textContent = data.session.user.email;
+      }
+    }
+
+    document.getElementById('signin-btn').addEventListener('click', async () => {
+      const email = document.getElementById('email-input').value;
+      const password = document.getElementById('pass-input').value;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { document.getElementById('auth-error').textContent = error.message; return; }
+      checkAuth();
+    });
+
+    document.getElementById('signout-btn').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      location.reload();
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>
