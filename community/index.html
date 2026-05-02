@@ -5,56 +5,543 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Community — Newscapes Live</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    /* Auth Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.75); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 2rem; width: 100%; max-width: 360px;
+      border: 1px solid var(--surface2);
+    }
+    .modal h2 { color: var(--accent); margin-bottom: 1rem; }
+    .modal input {
+      width: 100%; padding: .6rem;
+      border-radius: 6px; border: 1px solid var(--surface2);
+      background: var(--surface2); color: var(--text);
+      margin-bottom: .6rem; font-size: .95rem;
+    }
+    .modal-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+    .modal-tabs button {
+      flex: 1; padding: .4rem; border-radius: 6px;
+      border: 1px solid var(--surface2);
+      background: transparent; color: var(--muted); cursor: pointer;
+    }
+    .modal-tabs button.active {
+      background: var(--accent); color: #000; border-color: var(--accent);
+    }
+    .auth-error { color: #e05; font-size: .85rem; margin-top: .4rem; }
+
+    /* Post Card */
+    .post-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 1.1rem 1.25rem; margin-bottom: .85rem;
+      border: 1px solid var(--surface2);
+    }
+    .post-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: .5rem;
+    }
+    .post-author { font-weight: 700; font-size: .95rem; }
+    .post-time { color: var(--muted); font-size: .78rem; }
+    .post-body { font-size: .97rem; margin-bottom: .75rem; line-height: 1.55; }
+    .post-actions { display: flex; gap: 1rem; }
+    .post-actions button {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: .88rem; padding: 0;
+      transition: color .15s;
+    }
+    .post-actions button:hover { color: var(--accent); }
+    .post-actions button.liked { color: var(--accent); }
+
+    /* Comments */
+    .comments-section {
+      margin-top: .75rem; padding-top: .75rem;
+      border-top: 1px solid var(--surface2);
+      display: none;
+    }
+    .comments-section.open { display: block; }
+    .comment-item {
+      font-size: .88rem; padding: .35rem 0;
+      border-bottom: 1px solid var(--surface2);
+      color: var(--muted);
+    }
+    .comment-item:last-child { border-bottom: none; }
+    .comment-author { color: var(--text); font-weight: 600; }
+    .comment-form {
+      display: flex; gap: .5rem; margin-top: .6rem;
+    }
+    .comment-form input {
+      flex: 1; padding: .4rem .7rem;
+      border-radius: 6px; border: 1px solid var(--surface2);
+      background: var(--surface2); color: var(--text); font-size: .88rem;
+    }
+    .comment-form button {
+      padding: .4rem .9rem;
+      background: var(--accent); color: #000;
+      border: none; border-radius: 6px;
+      cursor: pointer; font-weight: 600; font-size: .85rem;
+    }
+
+    /* Compose */
+    .compose-box {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+      border: 1px solid var(--surface2);
+    }
+    .compose-box textarea {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--surface2); border-radius: 6px;
+      color: var(--text); padding: .6rem; font-size: .95rem;
+      resize: vertical; min-height: 70px; font-family: inherit;
+    }
+    .compose-box textarea:focus { outline: 1px solid var(--accent); }
+    .compose-footer {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-top: .5rem;
+    }
+    .compose-hint { color: var(--muted); font-size: .82rem; }
+
+    /* Poll */
+    .poll-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 1.25rem; margin-bottom: .85rem;
+      border: 1px solid var(--surface2);
+    }
+    .poll-question { font-weight: 700; margin-bottom: .9rem; font-size: 1rem; }
+    .poll-option {
+      position: relative; margin-bottom: .5rem;
+    }
+    .poll-option button {
+      width: 100%; text-align: left; padding: .55rem .9rem;
+      border-radius: 6px; border: 1px solid var(--surface2);
+      background: var(--surface2); color: var(--text);
+      cursor: pointer; font-size: .92rem; transition: border-color .15s;
+      position: relative; overflow: hidden;
+    }
+    .poll-option button:hover:not(:disabled) { border-color: var(--accent); }
+    .poll-option button:disabled { cursor: default; }
+    .poll-bar {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: rgba(232,184,75,.15); border-radius: 6px;
+      transition: width .4s;
+    }
+    .poll-label { position: relative; z-index: 1; }
+    .poll-pct {
+      position: absolute; right: .8rem; top: 50%; transform: translateY(-50%);
+      font-size: .82rem; color: var(--accent); font-weight: 700; z-index: 1;
+    }
+    .poll-voted { color: var(--accent); font-size: .78rem; margin-top: .3rem; }
+    .poll-total { color: var(--muted); font-size: .78rem; margin-top: .5rem; }
+
+    /* Leaderboard */
+    .lb-row {
+      display: flex; align-items: center; gap: .9rem;
+      padding: .55rem 0; border-bottom: 1px solid var(--surface2);
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { width: 24px; text-align: center; font-weight: 700; color: var(--muted); font-size: .9rem; }
+    .lb-rank.top { color: var(--accent); }
+    .lb-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--surface2); object-fit: cover;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; color: var(--muted); flex-shrink: 0;
+    }
+    .lb-name { flex: 1; font-size: .95rem; font-weight: 600; }
+    .lb-pts { color: var(--accent); font-weight: 700; font-size: .9rem; }
+    .lb-badge { font-size: .75rem; background: var(--surface2); padding: .15rem .45rem; border-radius: 99px; color: var(--muted); }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex; gap: .5rem; margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--surface2); padding-bottom: .5rem;
+    }
+    .tab-bar button {
+      background: none; border: none; color: var(--muted);
+      font-size: .97rem; padding: .3rem .7rem;
+      cursor: pointer; border-radius: 6px 6px 0 0;
+      transition: color .15s;
+    }
+    .tab-bar button.active { color: var(--accent); font-weight: 700; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+  </style>
 </head>
 <body>
+
+  <!-- HEADER -->
   <header>
     <div class="container">
       <nav>
         <div class="nav-brand">
           <img class="brand-logo" src="" alt="">
-          <span class="brand-name">Newscapes Live</span>
+          <a href="../" class="brand-name" style="color:var(--accent)">Newscapes Live</a>
         </div>
         <div class="nav-links">
           <a href="../">Home</a>
           <a href="./">Community</a>
           <a href="../support/">Support</a>
+          <span id="nav-user" style="color:var(--muted);font-size:.85rem"></span>
+          <button class="btn btn-outline" id="auth-btn" style="padding:.3rem .8rem;font-size:.85rem">Sign In</button>
         </div>
       </nav>
     </div>
   </header>
 
-  <section class="hero" style="padding:2.5rem 1.25rem 1.5rem">
+  <!-- AUTH MODAL -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal">
+      <div class="modal-tabs">
+        <button class="active" id="tab-signin">Sign In</button>
+        <button id="tab-signup">Sign Up</button>
+      </div>
+      <input id="auth-email" type="email" placeholder="Email">
+      <input id="auth-pass" type="password" placeholder="Password">
+      <input id="auth-username" type="text" placeholder="Username (sign up only)" style="display:none">
+      <button class="btn btn-primary" id="auth-submit" style="width:100%">Sign In</button>
+      <p class="auth-error" id="auth-error"></p>
+      <button id="auth-close" style="background:none;border:none;color:var(--muted);margin-top:.75rem;cursor:pointer;font-size:.85rem">Cancel</button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" style="padding:2rem 1.25rem 1.25rem">
     <div class="container">
-      <h1 style="color:var(--accent);margin-bottom:.5rem">Community</h1>
-      <p style="color:var(--muted)">Message board, polls, and leaderboard — coming soon.</p>
+      <h1 style="color:var(--accent);margin-bottom:.3rem">Community</h1>
+      <p style="color:var(--muted)">Message board &middot; Polls &middot; Leaderboard</p>
     </div>
   </section>
 
+  <!-- MAIN -->
   <section>
     <div class="container">
-      <div class="section-title">Message Board</div>
-      <div class="card"><p>Sign in to post and join the conversation.</p></div>
-    </div>
-  </section>
+      <div class="tab-bar">
+        <button class="active" data-tab="board">💬 Board</button>
+        <button data-tab="polls">📊 Polls</button>
+        <button data-tab="leaderboard">🏆 Leaderboard</button>
+      </div>
 
-  <section>
-    <div class="container">
-      <div class="section-title">Active Polls</div>
-      <div class="card" id="polls-container"><p>No active polls right now.</p></div>
-    </div>
-  </section>
+      <!-- BOARD -->
+      <div class="tab-panel active" id="tab-board">
+        <div id="compose-area" style="display:none">
+          <div class="compose-box">
+            <textarea id="post-input" placeholder="What's on your mind?"></textarea>
+            <div class="compose-footer">
+              <span class="compose-hint">Be kind &mdash; this is a community space.</span>
+              <button class="btn btn-primary" id="post-submit" style="padding:.45rem 1.1rem">Post</button>
+            </div>
+          </div>
+        </div>
+        <div id="signin-prompt" class="card" style="text-align:center;margin-bottom:1.25rem">
+          <p style="margin-bottom:.75rem">Sign in to post and join the conversation.</p>
+          <button class="btn btn-outline" id="prompt-signin">Sign In / Sign Up</button>
+        </div>
+        <div id="posts-feed"><p style="color:var(--muted)">Loading posts...</p></div>
+      </div>
 
-  <section>
-    <div class="container">
-      <div class="section-title">Leaderboard</div>
-      <div class="card" id="leaderboard"><p>Earn points by participating. Leaderboard loading...</p></div>
+      <!-- POLLS -->
+      <div class="tab-panel" id="tab-polls">
+        <div id="polls-container"><p style="color:var(--muted)">Loading polls...</p></div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div class="tab-panel" id="tab-leaderboard">
+        <div class="card">
+          <p style="color:var(--muted);font-size:.88rem;margin-bottom:1rem">
+            Earn points by posting, commenting, voting, and supporting the show.
+          </p>
+          <div id="lb-list"><p style="color:var(--muted)">Loading...</p></div>
+        </div>
+      </div>
     </div>
   </section>
 
   <footer>
-    <p>Newscapes Live &mdash; <a href="../">Home</a></p>
+    <p>Newscapes Live &mdash; <a href="../">Home</a> &mdash; <a href="../support/">Support the Show</a></p>
   </footer>
 
-  <script type="module" src="../js/app.js"></script>
+  <script type="module">
+    import {
+      initAuth, currentUser, currentProfile,
+      loadPosts, createPost, toggleLike, addComment, deletePost,
+      loadOpenPolls, getUserVote, castVote, getPollResults,
+      loadLeaderboard
+    } from '../js/community.js';
+
+    // ── Tabs ──────────────────────────────────────────────────
+    document.querySelectorAll('.tab-bar button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'polls') renderPolls();
+        if (btn.dataset.tab === 'leaderboard') renderLeaderboard();
+      });
+    });
+
+    // ── Auth Modal ────────────────────────────────────────────
+    let authMode = 'signin';
+    const modal = document.getElementById('auth-modal');
+    const openModal = () => modal.classList.add('open');
+    const closeModal = () => { modal.classList.remove('open'); document.getElementById('auth-error').textContent = ''; };
+
+    document.getElementById('auth-btn').addEventListener('click', openModal);
+    document.getElementById('prompt-signin').addEventListener('click', openModal);
+    document.getElementById('auth-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    document.getElementById('tab-signin').addEventListener('click', () => {
+      authMode = 'signin';
+      document.getElementById('tab-signin').classList.add('active');
+      document.getElementById('tab-signup').classList.remove('active');
+      document.getElementById('auth-username').style.display = 'none';
+      document.getElementById('auth-submit').textContent = 'Sign In';
+    });
+    document.getElementById('tab-signup').addEventListener('click', () => {
+      authMode = 'signup';
+      document.getElementById('tab-signup').classList.add('active');
+      document.getElementById('tab-signin').classList.remove('active');
+      document.getElementById('auth-username').style.display = 'block';
+      document.getElementById('auth-submit').textContent = 'Create Account';
+    });
+
+    document.getElementById('auth-submit').addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-pass').value;
+      const username = document.getElementById('auth-username').value.trim();
+      const errEl = document.getElementById('auth-error');
+      errEl.textContent = '';
+
+      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+      const { supabase } = await import('../js/supabase.js');
+
+      if (authMode === 'signup') {
+        if (!username || username.length < 3) { errEl.textContent = 'Username must be at least 3 characters.'; return; }
+        const { error } = await supabase.auth.signUp({ email, password,
+          options: { data: { username } }
+        });
+        if (error) { errEl.textContent = error.message; return; }
+        // Insert profile
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.from('profiles').upsert({ id: session.user.id, username, full_name: username });
+        }
+        errEl.style.color = 'var(--accent)';
+        errEl.textContent = 'Account created! Check email to confirm.';
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) { errEl.textContent = error.message; return; }
+        closeModal();
+      }
+    });
+
+    // ── Auth State UI ─────────────────────────────────────────
+    function onAuthChange(user, profile) {
+      const btn = document.getElementById('auth-btn');
+      const navUser = document.getElementById('nav-user');
+      const compose = document.getElementById('compose-area');
+      const prompt = document.getElementById('signin-prompt');
+      if (user && profile) {
+        btn.textContent = 'Sign Out';
+        btn.onclick = async () => {
+          const { supabase } = await import('../js/supabase.js');
+          await supabase.auth.signOut();
+        };
+        navUser.textContent = profile.username || user.email;
+        compose.style.display = 'block';
+        prompt.style.display = 'none';
+      } else {
+        btn.textContent = 'Sign In';
+        btn.onclick = openModal;
+        navUser.textContent = '';
+        compose.style.display = 'none';
+        prompt.style.display = 'block';
+      }
+      renderPosts();
+    }
+
+    // ── Posts ─────────────────────────────────────────────────
+    function timeAgo(ts) {
+      const diff = (Date.now() - new Date(ts)) / 1000;
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+      return `${Math.floor(diff/86400)}d ago`;
+    }
+
+    async function renderPosts() {
+      const feed = document.getElementById('posts-feed');
+      const posts = await loadPosts();
+      if (!posts.length) { feed.innerHTML = '<p style="color:var(--muted)">No posts yet. Be the first!</p>'; return; }
+
+      // Get current user's likes
+      let myLikes = new Set();
+      if (currentUser) {
+        const { supabase } = await import('../js/supabase.js');
+        const { data } = await supabase.from('likes').select('post_id').eq('user_id', currentUser.id);
+        myLikes = new Set((data || []).map(l => l.post_id));
+      }
+
+      feed.innerHTML = posts.map(p => {
+        const liked = myLikes.has(p.id);
+        const commentCount = p.comments?.length || 0;
+        const likeCount = p.likes?.length || 0;
+        const canDelete = currentUser?.id === p.profiles?.id ||
+          (currentProfile?.show_role === 'admin' || currentProfile?.show_role === 'moderator');
+        const commentsHtml = (p.comments || [])
+          .sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
+          .map(c => `<div class="comment-item"><span class="comment-author">${c.profiles?.username || 'User'}</span>: ${c.body}</div>`)
+          .join('');
+        return `
+        <div class="post-card" data-id="${p.id}">
+          <div class="post-header">
+            <span class="post-author">${p.profiles?.username || 'Anonymous'}</span>
+            <span class="post-time">${timeAgo(p.created_at)}</span>
+          </div>
+          <div class="post-body">${p.caption || ''}</div>
+          <div class="post-actions">
+            <button class="like-btn ${liked ? 'liked' : ''}" data-id="${p.id}">
+              ${liked ? '❤️' : '🤍'} ${likeCount}
+            </button>
+            <button class="comment-toggle" data-id="${p.id}">💬 ${commentCount}</button>
+            ${canDelete ? `<button class="delete-post" data-id="${p.id}" style="margin-left:auto;color:var(--muted)">🗑</button>` : ''}
+          </div>
+          <div class="comments-section" id="comments-${p.id}">
+            <div class="comments-list">${commentsHtml}</div>
+            ${currentUser ? `
+            <div class="comment-form">
+              <input type="text" placeholder="Add a comment..." data-post="${p.id}">
+              <button data-post="${p.id}">Send</button>
+            </div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+      // Like buttons
+      feed.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!currentUser) { openModal(); return; }
+          const liked = await toggleLike(btn.dataset.id);
+          renderPosts();
+        });
+      });
+
+      // Comment toggles
+      feed.querySelectorAll('.comment-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('comments-' + btn.dataset.id).classList.toggle('open');
+        });
+      });
+
+      // Comment submit
+      feed.querySelectorAll('.comment-form button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const input = feed.querySelector(`.comment-form input[data-post="${btn.dataset.post}"]`);
+          if (!input.value.trim()) return;
+          await addComment(btn.dataset.post, input.value.trim());
+          input.value = '';
+          renderPosts();
+        });
+      });
+
+      // Delete buttons
+      feed.querySelectorAll('.delete-post').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this post?')) return;
+          await deletePost(btn.dataset.id);
+          renderPosts();
+        });
+      });
+    }
+
+    // Post submit
+    document.getElementById('post-submit').addEventListener('click', async () => {
+      const input = document.getElementById('post-input');
+      const text = input.value.trim();
+      if (!text) return;
+      await createPost(text);
+      input.value = '';
+      renderPosts();
+    });
+
+    // ── Polls ─────────────────────────────────────────────────
+    async function renderPolls() {
+      const container = document.getElementById('polls-container');
+      const polls = await loadOpenPolls();
+      if (!polls.length) { container.innerHTML = '<div class="card"><p style="color:var(--muted)">No active polls right now. Check back after the next show!</p></div>'; return; }
+
+      const html = await Promise.all(polls.map(async poll => {
+        const options = Array.isArray(poll.options) ? poll.options : JSON.parse(poll.options || '[]');
+        const myVote = await getUserVote(poll.id);
+        const results = myVote ? await getPollResults(poll.id) : {};
+        const total = Object.values(results).reduce((a,b) => a+b, 0);
+
+        const optHtml = options.map(opt => {
+          const votes = results[opt] || 0;
+          const pct = total ? Math.round((votes / total) * 100) : 0;
+          const chosen = myVote === opt;
+          return `
+          <div class="poll-option">
+            <button data-poll="${poll.id}" data-choice="${opt}"
+              ${myVote ? 'disabled' : ''}>
+              ${myVote ? `<div class="poll-bar" style="width:${pct}%"></div>` : ''}
+              <span class="poll-label">${chosen ? '✓ ' : ''}${opt}</span>
+              ${myVote ? `<span class="poll-pct">${pct}%</span>` : ''}
+            </button>
+          </div>`;
+        }).join('');
+
+        return `
+        <div class="poll-card">
+          <div class="poll-question">${poll.question}</div>
+          ${optHtml}
+          ${myVote ? `<div class="poll-voted">You voted: ${myVote}</div><div class="poll-total">${total} vote${total !== 1 ? 's' : ''}</div>` : '<div class="poll-voted" style="color:var(--muted)">Sign in to vote</div>'}
+        </div>`;
+      }));
+
+      container.innerHTML = html.join('');
+
+      container.querySelectorAll('.poll-option button:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!currentUser) { openModal(); return; }
+          try {
+            await castVote(btn.dataset.poll, btn.dataset.choice);
+            renderPolls();
+          } catch(e) {
+            console.error(e);
+          }
+        });
+      });
+    }
+
+    // ── Leaderboard ───────────────────────────────────────────
+    async function renderLeaderboard() {
+      const list = document.getElementById('lb-list');
+      const rows = await loadLeaderboard();
+      if (!rows.length) { list.innerHTML = '<p style="color:var(--muted)">No data yet.</p>'; return; }
+      list.innerHTML = rows.map((r, i) => {
+        const rank = i + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+        return `
+        <div class="lb-row">
+          <div class="lb-rank ${rank <= 3 ? 'top' : ''}">${medal}</div>
+          <div class="lb-avatar">${r.avatar_url ? `<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : '👤'}</div>
+          <div class="lb-name">${r.username || 'Anonymous'}
+            <span class="lb-badge">${r.show_role}</span>
+          </div>
+          <div class="lb-pts">${r.points_total} pts</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Init ──────────────────────────────────────────────────
+    initAuth(onAuthChange);
+  </script>
 </body>
 </html>
