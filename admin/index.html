@@ -33,27 +33,13 @@
       color: var(--accent); margin-bottom: 1.25rem;
       display: flex; align-items: center; gap: .75rem;
     }
-    .stream-mode-card {
-      margin-bottom: 1.25rem;
-    }
+    .stream-mode-card { margin-bottom: 1.25rem; }
     .stream-mode-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; flex-wrap: wrap;
     }
-    .stream-mode-controls {
-      display: flex;
-      gap: .5rem;
-      flex-wrap: wrap;
-    }
-    .stream-mode-status {
-      font-size: .85rem;
-      color: var(--muted);
-      margin-top: .5rem;
-    }
-    /* Forms */
+    .stream-mode-controls { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .stream-mode-status { font-size: .85rem; color: var(--muted); margin-top: .5rem; }
     .form-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
       margin-bottom: 1rem;
@@ -72,7 +58,6 @@
       outline: 1px solid var(--accent);
     }
     .form-actions { display: flex; gap: .6rem; margin-top: .5rem; }
-    /* Table */
     .data-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
     .data-table th {
       text-align: left; padding: .5rem .75rem;
@@ -85,7 +70,6 @@
     }
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: rgba(255,255,255,.02); }
-    /* Badges */
     .role-badge {
       display: inline-block; padding: .15rem .5rem;
       border-radius: 99px; font-size: .75rem; font-weight: 600;
@@ -104,13 +88,11 @@
     .status-cancelled { background: var(--surface2); color: var(--muted); }
     .status-open { background: rgba(100,255,150,.1); color: #6eff9a; }
     .status-closed { background: var(--surface2); color: var(--muted); }
-    /* Sub-panel */
     .sub-panel {
       background: var(--surface2); border-radius: var(--radius);
       padding: 1rem 1.25rem; margin-top: 1rem;
     }
     .sub-panel-title { font-size: .9rem; font-weight: 700; color: var(--accent); margin-bottom: .75rem; }
-    /* Auth gate */
     #auth-gate { max-width: 360px; margin: 4rem auto; }
     .toast {
       position: fixed; bottom: 1.5rem; right: 1.5rem;
@@ -140,10 +122,10 @@
     <div class="card" style="text-align:center">
       <h2 style="color:var(--accent);margin-bottom:1rem">🔐 Admin Sign In</h2>
       <div class="form-field" style="margin-bottom:.6rem">
-        <input id="login-email" type="email" placeholder="Email">
+        <input id="login-email" type="email" placeholder="Email" autocomplete="email">
       </div>
       <div class="form-field" style="margin-bottom:1rem">
-        <input id="login-pass" type="password" placeholder="Password">
+        <input id="login-pass" type="password" placeholder="Password" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" style="width:100%">Sign In</button>
       <p id="login-error" style="color:#e05;font-size:.85rem;margin-top:.5rem"></p>
@@ -168,7 +150,6 @@
     </header>
 
     <div class="admin-layout">
-      <!-- SIDEBAR -->
       <nav class="sidebar">
         <div class="section-label">Show</div>
         <a href="#" data-panel="shows" class="active">📅 Shows</a>
@@ -182,13 +163,11 @@
         <a href="#" data-panel="supporters">💛 Supporters</a>
       </nav>
 
-      <!-- MAIN -->
       <main class="admin-main">
 
         <!-- SHOWS -->
         <div class="admin-panel active" id="panel-shows">
           <div class="panel-title">📅 Shows</div>
-
           <div class="card stream-mode-card">
             <div class="stream-mode-row">
               <div>
@@ -389,19 +368,28 @@
       setTimeout(() => el.classList.remove('show'), 2800);
     }
 
-    async function init() {
-      adminCtx = await requireAdmin();
-      if (adminCtx) showAdmin();
-    }
+    // Passive session check on load — never touches the DOM if no session
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data?.session) return; // no session, leave login form alone
+      const ctx = await requireAdmin();
+      if (ctx) { adminCtx = ctx; showAdmin(); }
+    });
 
     document.getElementById('login-btn').addEventListener('click', async () => {
-      const email = document.getElementById('login-email').value;
+      const email = document.getElementById('login-email').value.trim();
       const pass = document.getElementById('login-pass').value;
       const errEl = document.getElementById('login-error');
+      errEl.textContent = '';
+      if (!email || !pass) { errEl.textContent = 'Email and password required.'; return; }
       const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
       if (error) { errEl.textContent = error.message; return; }
-      adminCtx = await requireAdmin();
-      if (!adminCtx) { errEl.textContent = 'Access denied. Admin role required.'; await supabase.auth.signOut(); return; }
+      const ctx = await requireAdmin();
+      if (!ctx) {
+        errEl.textContent = 'Access denied. Admin role required.';
+        await supabase.auth.signOut();
+        return;
+      }
+      adminCtx = ctx;
       showAdmin();
     });
 
@@ -414,7 +402,7 @@
       try {
         const mode = await getStreamMode();
         statusEl.textContent = `Current mode: ${mode}`;
-      } catch (error) {
+      } catch (e) {
         statusEl.textContent = 'Current mode: unavailable';
       }
     }
@@ -424,8 +412,8 @@
         await setStreamMode(mode);
         toast(`Stream mode set to ${mode} ✔`);
         await refreshStreamMode();
-      } catch (error) {
-        toast(error.message || 'Unable to update stream mode.');
+      } catch (e) {
+        toast(e.message || 'Unable to update stream mode.');
       }
     }
 
@@ -449,7 +437,8 @@
         a.classList.add('active');
         document.getElementById('panel-' + a.dataset.panel).classList.add('active');
         const loaders = {
-          shows: async () => { await loadShows(); await refreshStreamMode(); }, guests: loadGuests, stream: loadStreamLinks,
+          shows: async () => { await loadShows(); await refreshStreamMode(); },
+          guests: loadGuests, stream: loadStreamLinks,
           polls: loadPolls, branding: loadBranding,
           users: loadUsers, supporters: loadSupporters
         };
@@ -781,12 +770,8 @@
         <tr>
           <td><strong>${w.display_name}</strong>${w.recognition_note ? '<br><span style="color:var(--muted);font-size:.8rem">' + w.recognition_note + '</span>' : ''}</td>
           <td><span class="role-badge role-${w.tier}">${w.tier}</span></td>
-          <td>
-            <input type="checkbox" ${w.is_visible ? 'checked' : ''} onchange="toggleVisible('${w.id}', this.checked)">
-          </td>
-          <td>
-            <input type="checkbox" ${w.featured ? 'checked' : ''} onchange="toggleFeatured('${w.id}', this.checked)">
-          </td>
+          <td><input type="checkbox" ${w.is_visible ? 'checked' : ''} onchange="toggleVisible('${w.id}', this.checked)"></td>
+          <td><input type="checkbox" ${w.featured ? 'checked' : ''} onchange="toggleFeatured('${w.id}', this.checked)"></td>
           <td style="color:var(--muted);font-size:.82rem">${fmtDate(w.created_at)}</td>
         </tr>`).join('');
     }
@@ -794,7 +779,6 @@
     window.toggleVisible = async (id, val) => { await updateRecognitionEntry(id, { is_visible: val }); toast('Visibility updated.'); };
     window.toggleFeatured = async (id, val) => { await updateRecognitionEntry(id, { featured: val }); toast('Featured updated.'); };
 
-    init();
   </script>
 </body>
 </html>
