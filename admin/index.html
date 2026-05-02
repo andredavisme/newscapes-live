@@ -33,6 +33,26 @@
       color: var(--accent); margin-bottom: 1.25rem;
       display: flex; align-items: center; gap: .75rem;
     }
+    .stream-mode-card {
+      margin-bottom: 1.25rem;
+    }
+    .stream-mode-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .stream-mode-controls {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    .stream-mode-status {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-top: .5rem;
+    }
     /* Forms */
     .form-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
@@ -107,6 +127,7 @@
       .sidebar a.active { border-bottom-color: var(--accent); border-left: none; }
       .sidebar .section-label { display: none; }
       .form-grid { grid-template-columns: 1fr; }
+      .stream-mode-row { align-items: flex-start; }
     }
   </style>
 </head>
@@ -167,6 +188,21 @@
         <!-- SHOWS -->
         <div class="admin-panel active" id="panel-shows">
           <div class="panel-title">📅 Shows</div>
+
+          <div class="card stream-mode-card">
+            <div class="stream-mode-row">
+              <div>
+                <div style="font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:.25rem">Stream Mode</div>
+                <div style="font-size:.85rem;color:var(--muted)">Controls the homepage player for the next scheduled or live show.</div>
+              </div>
+              <div class="stream-mode-controls">
+                <button class="btn btn-outline" id="stream-mode-live">🔴 Live</button>
+                <button class="btn btn-outline" id="stream-mode-playlist">🎬 Playlist</button>
+                <button class="btn btn-outline" id="stream-mode-off">⏹ Off</button>
+              </div>
+            </div>
+            <div class="stream-mode-status" id="stream-mode-status">Current mode: loading...</div>
+          </div>
 
           <div class="card" style="margin-bottom:1.25rem">
             <div style="font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:.75rem" id="show-form-title">New Show</div>
@@ -324,7 +360,7 @@
           <div class="section-title">Recognition Wall</div>
           <table class="data-table">
             <thead><tr><th>Display Name</th><th>Tier</th><th>Visible</th><th>Featured</th><th>Actions</th></tr></thead>
-            <tbody id="wall-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading...</td></tr></tbody>
+            <tbody id="wall-tbody"><tr><td colspan="5" style="color:var(--muted)">Recognition wall is empty.</td></tr></tbody>
           </table>
         </div>
 
@@ -336,6 +372,7 @@
     import { supabase } from '../js/supabase.js';
     import {
       requireAdmin, getShows, upsertShow, deleteShow,
+      setStreamMode, getStreamMode,
       upsertGuest, deleteGuest, upsertStreamLink, deleteStreamLink,
       getPolls, upsertPoll, setPollStatus, deletePoll,
       getBranding, saveBranding,
@@ -346,14 +383,12 @@
     let adminCtx = null;
     let showsCache = [];
 
-    // ── Toast ───────────────────────────────────────────────
     function toast(msg) {
       const el = document.getElementById('toast');
       el.textContent = msg; el.classList.add('show');
       setTimeout(() => el.classList.remove('show'), 2800);
     }
 
-    // ── Auth ─────────────────────────────────────────────────
     async function init() {
       adminCtx = await requireAdmin();
       if (adminCtx) showAdmin();
@@ -374,14 +409,38 @@
       await supabase.auth.signOut(); location.reload();
     });
 
+    async function refreshStreamMode() {
+      const statusEl = document.getElementById('stream-mode-status');
+      try {
+        const mode = await getStreamMode();
+        statusEl.textContent = `Current mode: ${mode}`;
+      } catch (error) {
+        statusEl.textContent = 'Current mode: unavailable';
+      }
+    }
+
+    async function applyStreamMode(mode) {
+      try {
+        await setStreamMode(mode);
+        toast(`Stream mode set to ${mode} ✔`);
+        await refreshStreamMode();
+      } catch (error) {
+        toast(error.message || 'Unable to update stream mode.');
+      }
+    }
+
+    document.getElementById('stream-mode-live').addEventListener('click', () => applyStreamMode('live'));
+    document.getElementById('stream-mode-playlist').addEventListener('click', () => applyStreamMode('playlist'));
+    document.getElementById('stream-mode-off').addEventListener('click', () => applyStreamMode('off'));
+
     function showAdmin() {
       document.getElementById('auth-gate').style.display = 'none';
       document.getElementById('admin-app').style.display = 'block';
       document.getElementById('admin-user').textContent = adminCtx.profile.username || adminCtx.user.email;
       loadShows();
+      refreshStreamMode();
     }
 
-    // ── Sidebar Nav ─────────────────────────────────────────
     document.querySelectorAll('.sidebar a[data-panel]').forEach(a => {
       a.addEventListener('click', e => {
         e.preventDefault();
@@ -390,7 +449,7 @@
         a.classList.add('active');
         document.getElementById('panel-' + a.dataset.panel).classList.add('active');
         const loaders = {
-          shows: loadShows, guests: loadGuests, stream: loadStreamLinks,
+          shows: async () => { await loadShows(); await refreshStreamMode(); }, guests: loadGuests, stream: loadStreamLinks,
           polls: loadPolls, branding: loadBranding,
           users: loadUsers, supporters: loadSupporters
         };
@@ -418,7 +477,6 @@
       });
     }
 
-    // ── SHOWS ────────────────────────────────────────────────
     async function loadShows() {
       showsCache = await getShows();
       populateShowSelects(showsCache);
@@ -452,7 +510,7 @@
 
     window.removeShow = async (id) => {
       if (!confirm('Delete this show and all its guests/links?')) return;
-      await deleteShow(id); toast('Show deleted.'); loadShows();
+      await deleteShow(id); toast('Show deleted.'); loadShows(); refreshStreamMode();
     };
 
     document.getElementById('show-save').addEventListener('click', async () => {
@@ -467,7 +525,7 @@
       if (!payload.title) { toast('Title required.'); return; }
       if (id) payload.id = id;
       await upsertShow(payload);
-      toast('Show saved ✔'); document.getElementById('show-clear').click(); loadShows();
+      toast('Show saved ✔'); document.getElementById('show-clear').click(); loadShows(); refreshStreamMode();
     });
 
     document.getElementById('show-clear').addEventListener('click', () => {
@@ -476,7 +534,6 @@
       document.getElementById('show-form-title').textContent = 'New Show';
     });
 
-    // ── GUESTS ───────────────────────────────────────────────
     let guestsCache = [];
     async function loadGuests() {
       if (!showsCache.length) showsCache = await getShows();
@@ -537,7 +594,6 @@
       document.getElementById('guest-confirmed').value = 'false';
     });
 
-    // ── STREAM LINKS ─────────────────────────────────────────
     let linksCache = [];
     async function loadStreamLinks() {
       if (!showsCache.length) showsCache = await getShows();
@@ -580,7 +636,6 @@
       document.getElementById('link-primary').value = 'false';
     });
 
-    // ── POLLS ─────────────────────────────────────────────────
     let pollsCache = [];
     async function loadPolls() {
       if (!showsCache.length) showsCache = await getShows();
@@ -636,7 +691,6 @@
       document.getElementById('poll-status').value = 'draft';
     });
 
-    // ── BRANDING ─────────────────────────────────────────────
     async function loadBranding() {
       const b = await getBranding();
       if (!b) return;
@@ -675,7 +729,6 @@
       toast('Branding saved ✔');
     });
 
-    // ── USERS ─────────────────────────────────────────────────
     let usersCache = [];
     async function loadUsers() {
       usersCache = await getUsers();
@@ -707,7 +760,6 @@
       toast(`+${pts} pts awarded to ${name} ✔`); loadUsers();
     };
 
-    // ── SUPPORTERS ───────────────────────────────────────────
     async function loadSupporters() {
       const donations = await getDonations();
       const wall = await getRecognitionWall();
@@ -742,7 +794,6 @@
     window.toggleVisible = async (id, val) => { await updateRecognitionEntry(id, { is_visible: val }); toast('Visibility updated.'); };
     window.toggleFeatured = async (id, val) => { await updateRecognitionEntry(id, { featured: val }); toast('Featured updated.'); };
 
-    // ── Boot ──────────────────────────────────────────────────
     init();
   </script>
 </body>
