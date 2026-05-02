@@ -1,22 +1,35 @@
 import { supabase } from './supabase.js';
 
-// ── Countdown to next Saturday noon ──────────────────────────
-function getNextSaturdayNoon() {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun, 6=Sat
-  const daysUntilSat = (6 - day + 7) % 7 || 7;
-  const next = new Date(now);
-  next.setDate(now.getDate() + daysUntilSat);
-  next.setHours(12, 0, 0, 0);
-  return next;
+// ── Countdown to next Saturday noon ET ───────────────────────
+function getNextSaturdayNoonET() {
+  // Build "this Saturday at 12:00:00 ET" as a UTC timestamp
+  // by using Intl to find the current date in New York
+  const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = nowET.getDay(); // 0=Sun, 6=Sat
+  const daysUntilSat = (6 - day + 7) % 7;
+
+  // If it's already Saturday but past noon ET, roll to next Saturday
+  const isPastNoonToday = day === 6 && (nowET.getHours() > 12 || (nowET.getHours() === 12 && nowET.getMinutes() > 0));
+  const daysToAdd = (daysUntilSat === 0 && !isPastNoonToday) ? 0 : (daysUntilSat === 0 ? 7 : daysUntilSat);
+
+  // Construct target as an ET noon string, then parse back to UTC Date
+  const target = new Date(nowET);
+  target.setDate(nowET.getDate() + daysToAdd);
+  target.setHours(12, 0, 0, 0);
+
+  // Re-express in UTC by using the ET offset
+  const etString = target.toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const etDate = new Date(etString);
+  const offsetMs = target - etDate;
+  return new Date(target.getTime() + offsetMs);
 }
 
 function updateCountdown() {
-  const target = getNextSaturdayNoon();
+  const target = getNextSaturdayNoonET();
   const now = new Date();
   const diff = target - now;
   if (diff <= 0) {
-    document.getElementById('countdown').textContent = '🔴 LIVE NOW';
+    document.getElementById('countdown').textContent = '\uD83D\uDD34 LIVE NOW';
     return;
   }
   const d = Math.floor(diff / 86400000);
@@ -56,7 +69,7 @@ async function loadNextShow() {
   const streamBtn = document.getElementById('stream-btn');
   if (streamBtn && primary) {
     streamBtn.href = primary.url;
-    streamBtn.textContent = `▶ Watch on ${primary.platform}`;
+    streamBtn.textContent = `\u25B6 Watch on ${primary.platform}`;
   }
 
   // Guests
@@ -65,7 +78,7 @@ async function loadNextShow() {
     guestList.innerHTML = data.guests
       .filter(g => g.confirmed)
       .sort((a, b) => a.appearance_order - b.appearance_order)
-      .map(g => `<li><strong>${g.name}</strong>${g.bio ? ' — ' + g.bio : ''}</li>`)
+      .map(g => `<li><strong>${g.name}</strong>${g.bio ? ' \u2014 ' + g.bio : ''}</li>`)
       .join('');
   }
 }
