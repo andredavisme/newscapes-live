@@ -272,7 +272,9 @@
       loadOpenPolls, getUserVote, castVote, getPollResults,
       loadLeaderboard
     } from '../js/community.js';
-    import '../js/admin-launcher.js';
+
+    // Load admin launcher lazily — must never crash this page
+    import('../js/admin-launcher.js').catch(e => console.warn('Admin launcher unavailable:', e.message));
 
     // ── Tabs ──────────────────────────────────────────────────
     document.querySelectorAll('.tab-bar button').forEach(btn => {
