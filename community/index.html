@@ -272,11 +272,12 @@
       loadOpenPolls, getUserVote, castVote, getPollResults,
       loadLeaderboard
     } from '../js/community.js';
+    import { supabase } from '../js/supabase.js';
 
     // Load admin launcher lazily — must never crash this page
     import('../js/admin-launcher.js').catch(e => console.warn('Admin launcher unavailable:', e.message));
 
-    // ── Tabs ──────────────────────────────────────────────────
+    // ── Tabs ────────────────────────────────────────────────────
     document.querySelectorAll('.tab-bar button').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
@@ -288,7 +289,7 @@
       });
     });
 
-    // ── Auth Modal ────────────────────────────────────────────
+    // ── Auth Modal ────────────────────────────────────────────────
     let authMode = 'signin';
     const modal = document.getElementById('auth-modal');
     const openModal = () => modal.classList.add('open');
@@ -319,30 +320,48 @@
       const password = document.getElementById('auth-pass').value;
       const username = document.getElementById('auth-username').value.trim();
       const errEl = document.getElementById('auth-error');
+      const submitBtn = document.getElementById('auth-submit');
       errEl.textContent = '';
+      errEl.style.color = '#e05';
 
-      const { supabase } = await import('../js/supabase.js');
+      // Validate
+      if (!email || !password) { errEl.textContent = 'Email and password are required.'; return; }
 
-      if (authMode === 'signup') {
-        if (!username || username.length < 3) { errEl.textContent = 'Username must be at least 3 characters.'; return; }
-        const { error } = await supabase.auth.signUp({ email, password,
-          options: { data: { username } }
-        });
-        if (error) { errEl.textContent = error.message; return; }
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await supabase.from('profiles').upsert({ id: session.user.id, username, full_name: username });
+      submitBtn.disabled = true;
+      submitBtn.textContent = authMode === 'signup' ? 'Creating...' : 'Signing in...';
+
+      try {
+        if (authMode === 'signup') {
+          if (!username || username.length < 3) {
+            errEl.textContent = 'Username must be at least 3 characters.';
+            return;
+          }
+          const { error } = await supabase.auth.signUp({
+            email, password,
+            options: { data: { username } }
+          });
+          if (error) { errEl.textContent = error.message; return; }
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase.from('profiles').upsert({ id: session.user.id, username, full_name: username });
+          }
+          errEl.style.color = 'var(--accent)';
+          errEl.textContent = 'Account created! Check your email to confirm.';
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) { errEl.textContent = error.message; return; }
+          closeModal();
         }
-        errEl.style.color = 'var(--accent)';
-        errEl.textContent = 'Account created! Check email to confirm.';
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) { errEl.textContent = error.message; return; }
-        closeModal();
+      } catch (err) {
+        console.error('Auth error:', err);
+        errEl.textContent = err.message || 'Something went wrong. Check the console.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = authMode === 'signup' ? 'Create Account' : 'Sign In';
       }
     });
 
-    // ── Auth State UI ─────────────────────────────────────────
+    // ── Auth State UI ─────────────────────────────────────────────
     function onAuthChange(user, profile) {
       const btn = document.getElementById('auth-btn');
       const navUser = document.getElementById('nav-user');
@@ -350,10 +369,7 @@
       const prompt = document.getElementById('signin-prompt');
       if (user && profile) {
         btn.textContent = 'Sign Out';
-        btn.onclick = async () => {
-          const { supabase } = await import('../js/supabase.js');
-          await supabase.auth.signOut();
-        };
+        btn.onclick = () => supabase.auth.signOut();
         navUser.textContent = profile.username || user.email;
         compose.style.display = 'block';
         prompt.style.display = 'none';
@@ -367,7 +383,7 @@
       renderPosts();
     }
 
-    // ── Posts ─────────────────────────────────────────────────
+    // ── Posts ─────────────────────────────────────────────────────
     function timeAgo(ts) {
       const diff = (Date.now() - new Date(ts)) / 1000;
       if (diff < 60) return 'just now';
@@ -383,7 +399,6 @@
 
       let myLikes = new Set();
       if (currentUser) {
-        const { supabase } = await import('../js/supabase.js');
         const { data } = await supabase.from('likes').select('post_id').eq('user_id', currentUser.id);
         myLikes = new Set((data || []).map(l => l.post_id));
       }
@@ -465,7 +480,7 @@
       renderPosts();
     });
 
-    // ── Polls ─────────────────────────────────────────────────
+    // ── Polls ────────────────────────────────────────────────────
     async function renderPolls() {
       const container = document.getElementById('polls-container');
       const polls = await loadOpenPolls();
@@ -510,7 +525,7 @@
       });
     }
 
-    // ── Leaderboard ───────────────────────────────────────────
+    // ── Leaderboard ──────────────────────────────────────────────
     async function renderLeaderboard() {
       const list = document.getElementById('lb-list');
       const rows = await loadLeaderboard();
@@ -528,7 +543,7 @@
       }).join('');
     }
 
-    // ── Init ──────────────────────────────────────────────────
+    // ── Init ────────────────────────────────────────────────────────
     initAuth(onAuthChange);
   </script>
 </body>
