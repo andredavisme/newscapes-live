@@ -46,7 +46,7 @@
       </div>
 
       <div class="cta-group">
-        <a id="stream-btn" class="btn btn-primary" href="#video-section" rel="noopener">▶ Watch Live</a>
+        <a id="stream-btn" class="btn btn-primary" href="#video-section">▶ Watch Live</a>
         <a class="btn btn-outline" href="community/">Join Community</a>
         <a class="btn btn-paypal" href="https://www.paypal.com/ncp/payment/SQ9X3PE9QF5WC" target="_blank" rel="noopener">💛 Support the Show</a>
       </div>
@@ -133,15 +133,14 @@
   <script type="module">
     import { supabase } from './js/supabase.js';
 
-    // Load stream URL from settings table
+    // Load stream URL from vault-backed edge function
     (async () => {
-      const { data } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'stream_url')
-        .maybeSingle();
-      if (data?.value) {
-        document.getElementById('video-player').src = data.value;
+      try {
+        const res = await fetch('https://nmemmfblpzrkwyljpmvp.supabase.co/functions/v1/get-stream-url');
+        const { url } = await res.json();
+        if (url) document.getElementById('video-player').src = url;
+      } catch (e) {
+        console.warn('Could not load stream URL:', e.message);
       }
     })();
 
