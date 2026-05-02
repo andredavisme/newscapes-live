@@ -31,6 +31,36 @@ export async function deleteShow(id) {
   if (error) throw error;
 }
 
+// ── Stream Mode ────────────────────────────────────────────
+// mode: 'live' | 'playlist' | 'off'
+export async function setStreamMode(mode) {
+  // Updates the upcoming/live show's stream_mode
+  const { data: show } = await supabase
+    .from('shows')
+    .select('id')
+    .in('status', ['scheduled', 'live'])
+    .order('scheduled_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!show) throw new Error('No active show found');
+  const { error } = await supabase
+    .from('shows')
+    .update({ stream_mode: mode })
+    .eq('id', show.id);
+  if (error) throw error;
+}
+
+export async function getStreamMode() {
+  const { data } = await supabase
+    .from('shows')
+    .select('stream_mode')
+    .in('status', ['scheduled', 'live'])
+    .order('scheduled_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.stream_mode || 'playlist';
+}
+
 // ── Guests ─────────────────────────────────────────────────
 export async function upsertGuest(guest) {
   const { data, error } = await supabase.from('guests').upsert(guest).select().single();
