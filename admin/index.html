@@ -5,106 +5,745 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Newscapes Live</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .admin-layout { display: flex; min-height: calc(100vh - 60px); }
+    .sidebar {
+      width: 200px; flex-shrink: 0;
+      background: var(--surface); border-right: 1px solid var(--surface2);
+      padding: 1.5rem 0;
+    }
+    .sidebar a {
+      display: block; padding: .6rem 1.25rem;
+      color: var(--muted); font-size: .92rem;
+      transition: all .15s; border-left: 3px solid transparent;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      color: var(--accent); background: rgba(232,184,75,.07);
+      border-left-color: var(--accent); text-decoration: none;
+    }
+    .sidebar .section-label {
+      font-size: .72rem; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .1em; padding: .9rem 1.25rem .3rem;
+    }
+    .admin-main { flex: 1; padding: 2rem 1.5rem; overflow-y: auto; }
+    .admin-panel { display: none; }
+    .admin-panel.active { display: block; }
+    .panel-title {
+      font-size: 1.3rem; font-weight: 700;
+      color: var(--accent); margin-bottom: 1.25rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    /* Forms */
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    .form-grid.single { grid-template-columns: 1fr; }
+    .form-field { display: flex; flex-direction: column; gap: .3rem; }
+    .form-field label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .form-field input, .form-field select, .form-field textarea {
+      padding: .5rem .75rem; border-radius: 6px;
+      border: 1px solid var(--surface2);
+      background: var(--surface2); color: var(--text);
+      font-size: .92rem; font-family: inherit;
+    }
+    .form-field textarea { resize: vertical; min-height: 70px; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+      outline: 1px solid var(--accent);
+    }
+    .form-actions { display: flex; gap: .6rem; margin-top: .5rem; }
+    /* Table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .data-table th {
+      text-align: left; padding: .5rem .75rem;
+      border-bottom: 2px solid var(--surface2);
+      color: var(--muted); font-size: .78rem; text-transform: uppercase;
+    }
+    .data-table td {
+      padding: .55rem .75rem; border-bottom: 1px solid var(--surface2);
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(255,255,255,.02); }
+    /* Badges */
+    .role-badge {
+      display: inline-block; padding: .15rem .5rem;
+      border-radius: 99px; font-size: .75rem; font-weight: 600;
+    }
+    .role-admin { background: rgba(232,184,75,.2); color: var(--accent); }
+    .role-moderator { background: rgba(100,180,255,.15); color: #6ab4ff; }
+    .role-supporter { background: rgba(100,255,150,.12); color: #6eff9a; }
+    .role-viewer { background: var(--surface2); color: var(--muted); }
+    .status-badge {
+      display: inline-block; padding: .15rem .5rem;
+      border-radius: 99px; font-size: .75rem;
+    }
+    .status-scheduled { background: rgba(100,180,255,.15); color: #6ab4ff; }
+    .status-live { background: rgba(255,80,80,.2); color: #ff6060; }
+    .status-completed { background: rgba(100,255,150,.1); color: #6eff9a; }
+    .status-cancelled { background: var(--surface2); color: var(--muted); }
+    .status-open { background: rgba(100,255,150,.1); color: #6eff9a; }
+    .status-closed { background: var(--surface2); color: var(--muted); }
+    /* Sub-panel */
+    .sub-panel {
+      background: var(--surface2); border-radius: var(--radius);
+      padding: 1rem 1.25rem; margin-top: 1rem;
+    }
+    .sub-panel-title { font-size: .9rem; font-weight: 700; color: var(--accent); margin-bottom: .75rem; }
+    /* Auth gate */
+    #auth-gate { max-width: 360px; margin: 4rem auto; }
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--surface); border: 1px solid var(--accent);
+      color: var(--accent); padding: .65rem 1.2rem;
+      border-radius: var(--radius); font-size: .9rem;
+      opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300;
+    }
+    .toast.show { opacity: 1; }
+    @media (max-width: 700px) {
+      .admin-layout { flex-direction: column; }
+      .sidebar { width: 100%; display: flex; flex-wrap: wrap; padding: .5rem; border-right: none; border-bottom: 1px solid var(--surface2); }
+      .sidebar a { padding: .4rem .7rem; border-left: none; border-bottom: 2px solid transparent; font-size: .82rem; }
+      .sidebar a.active { border-bottom-color: var(--accent); border-left: none; }
+      .sidebar .section-label { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <nav>
-        <div class="nav-brand">
-          <span class="brand-name">Newscapes Live — Admin</span>
-        </div>
-        <div class="nav-links">
-          <a href="../">Home</a>
-          <span id="user-email" style="color:var(--muted);font-size:.85rem"></span>
-          <button class="btn btn-outline" id="signout-btn" style="padding:.3rem .8rem;font-size:.85rem">Sign Out</button>
-        </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- AUTH GATE -->
+  <div id="auth-gate">
+    <div class="card" style="text-align:center">
+      <h2 style="color:var(--accent);margin-bottom:1rem">🔐 Admin Sign In</h2>
+      <div class="form-field" style="margin-bottom:.6rem">
+        <input id="login-email" type="email" placeholder="Email">
+      </div>
+      <div class="form-field" style="margin-bottom:1rem">
+        <input id="login-pass" type="password" placeholder="Password">
+      </div>
+      <button class="btn btn-primary" id="login-btn" style="width:100%">Sign In</button>
+      <p id="login-error" style="color:#e05;font-size:.85rem;margin-top:.5rem"></p>
+    </div>
+  </div>
+
+  <!-- ADMIN APP -->
+  <div id="admin-app" style="display:none">
+    <header>
+      <div class="container">
+        <nav>
+          <div class="nav-brand">
+            <a href="../" class="brand-name" style="color:var(--accent)">Newscapes Live</a>
+            <span style="color:var(--muted);font-size:.8rem;margin-left:.5rem">Admin</span>
+          </div>
+          <div class="nav-links">
+            <span id="admin-user" style="color:var(--muted);font-size:.85rem"></span>
+            <button class="btn btn-outline" id="signout-btn" style="padding:.3rem .8rem;font-size:.85rem">Sign Out</button>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <div class="admin-layout">
+      <!-- SIDEBAR -->
+      <nav class="sidebar">
+        <div class="section-label">Show</div>
+        <a href="#" data-panel="shows" class="active">📅 Shows</a>
+        <a href="#" data-panel="guests">🎤 Guests</a>
+        <a href="#" data-panel="stream">📡 Stream Links</a>
+        <div class="section-label">Content</div>
+        <a href="#" data-panel="polls">📊 Polls</a>
+        <a href="#" data-panel="branding">🎨 Branding</a>
+        <div class="section-label">Community</div>
+        <a href="#" data-panel="users">👥 Users</a>
+        <a href="#" data-panel="supporters">💛 Supporters</a>
       </nav>
-    </div>
-  </header>
 
-  <section style="padding:2rem 0">
-    <div class="container">
-      <div id="auth-gate">
-        <div class="card" style="max-width:360px;margin:2rem auto;text-align:center">
-          <h2 style="color:var(--accent);margin-bottom:1rem">Admin Sign In</h2>
-          <input id="email-input" type="email" placeholder="Email" style="width:100%;padding:.6rem;border-radius:6px;border:1px solid var(--surface2);background:var(--surface2);color:var(--text);margin-bottom:.6rem">
-          <input id="pass-input" type="password" placeholder="Password" style="width:100%;padding:.6rem;border-radius:6px;border:1px solid var(--surface2);background:var(--surface2);color:var(--text);margin-bottom:1rem">
-          <button class="btn btn-primary" id="signin-btn" style="width:100%">Sign In</button>
-          <p id="auth-error" style="color:#e05;margin-top:.5rem;font-size:.85rem"></p>
+      <!-- MAIN -->
+      <main class="admin-main">
+
+        <!-- SHOWS -->
+        <div class="admin-panel active" id="panel-shows">
+          <div class="panel-title">📅 Shows</div>
+
+          <div class="card" style="margin-bottom:1.25rem">
+            <div style="font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:.75rem" id="show-form-title">New Show</div>
+            <input type="hidden" id="show-id">
+            <div class="form-grid">
+              <div class="form-field"><label>Title</label><input id="show-title" placeholder="Episode title"></div>
+              <div class="form-field"><label>Episode #</label><input id="show-ep" type="number" placeholder="1"></div>
+              <div class="form-field"><label>Scheduled At</label><input id="show-date" type="datetime-local"></div>
+              <div class="form-field"><label>Status</label>
+                <select id="show-status">
+                  <option value="scheduled">Scheduled</option>
+                  <option value="live">Live</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div class="form-field single" style="grid-column:1/-1"><label>Notes / Description</label><textarea id="show-notes" placeholder="Show description or notes"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="show-save">Save Show</button>
+              <button class="btn btn-outline" id="show-clear" style="padding:.45rem 1rem">Clear</button>
+            </div>
+          </div>
+
+          <table class="data-table" id="shows-table">
+            <thead><tr><th>Episode</th><th>Title</th><th>Scheduled</th><th>Status</th><th>Guests</th><th></th></tr></thead>
+            <tbody id="shows-tbody"><tr><td colspan="6" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
         </div>
-      </div>
 
-      <div id="admin-panel" style="display:none">
-        <div class="section-title">Admin Dashboard</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:1rem">
-          <div class="card" style="text-align:center">
-            <div style="font-size:2rem">📅</div>
-            <h3>Shows</h3>
-            <p>Schedule &amp; manage episodes</p>
+        <!-- GUESTS -->
+        <div class="admin-panel" id="panel-guests">
+          <div class="panel-title">🎤 Guests</div>
+          <div class="card" style="margin-bottom:1.25rem">
+            <div style="font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:.75rem">Add / Edit Guest</div>
+            <input type="hidden" id="guest-id">
+            <div class="form-grid">
+              <div class="form-field"><label>Show</label>
+                <select id="guest-show-id"><option value="">Select show...</option></select>
+              </div>
+              <div class="form-field"><label>Name</label><input id="guest-name" placeholder="Guest name"></div>
+              <div class="form-field"><label>Social Handle</label><input id="guest-social" placeholder="@handle"></div>
+              <div class="form-field"><label>Order</label><input id="guest-order" type="number" value="0"></div>
+              <div class="form-field" style="grid-column:1/-1"><label>Bio</label><textarea id="guest-bio" placeholder="Short bio"></textarea></div>
+              <div class="form-field"><label>Confirmed</label>
+                <select id="guest-confirmed"><option value="false">Pending</option><option value="true">Confirmed</option></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="guest-save">Save Guest</button>
+              <button class="btn btn-outline" id="guest-clear" style="padding:.45rem 1rem">Clear</button>
+            </div>
           </div>
-          <div class="card" style="text-align:center">
-            <div style="font-size:2rem">🎤</div>
-            <h3>Guests</h3>
-            <p>Book and confirm guests</p>
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Show</th><th>Status</th><th>Social</th><th></th></tr></thead>
+            <tbody id="guests-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- STREAM LINKS -->
+        <div class="admin-panel" id="panel-stream">
+          <div class="panel-title">📡 Stream Links</div>
+          <div class="card" style="margin-bottom:1.25rem">
+            <input type="hidden" id="link-id">
+            <div class="form-grid">
+              <div class="form-field"><label>Show</label>
+                <select id="link-show-id"><option value="">Select show...</option></select>
+              </div>
+              <div class="form-field"><label>Platform</label><input id="link-platform" placeholder="YouTube, Twitch, etc."></div>
+              <div class="form-field" style="grid-column:1/-1"><label>URL</label><input id="link-url" placeholder="https://..."></div>
+              <div class="form-field"><label>Primary Link</label>
+                <select id="link-primary"><option value="false">No</option><option value="true">Yes</option></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="link-save">Save Link</button>
+              <button class="btn btn-outline" id="link-clear" style="padding:.45rem 1rem">Clear</button>
+            </div>
           </div>
-          <div class="card" style="text-align:center">
-            <div style="font-size:2rem">🎨</div>
-            <h3>Branding</h3>
-            <p>Logo, tagline, media links</p>
+          <table class="data-table">
+            <thead><tr><th>Show</th><th>Platform</th><th>URL</th><th>Primary</th><th></th></tr></thead>
+            <tbody id="links-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- POLLS -->
+        <div class="admin-panel" id="panel-polls">
+          <div class="panel-title">📊 Polls</div>
+          <div class="card" style="margin-bottom:1.25rem">
+            <input type="hidden" id="poll-id">
+            <div class="form-grid">
+              <div class="form-field" style="grid-column:1/-1"><label>Question</label><input id="poll-question" placeholder="What do you think about..."></div>
+              <div class="form-field" style="grid-column:1/-1"><label>Options (one per line)</label><textarea id="poll-options" placeholder="Option A&#10;Option B&#10;Option C"></textarea></div>
+              <div class="form-field"><label>Show (optional)</label>
+                <select id="poll-show-id"><option value="">Not tied to a show</option></select>
+              </div>
+              <div class="form-field"><label>Status</label>
+                <select id="poll-status"><option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="poll-save">Save Poll</button>
+              <button class="btn btn-outline" id="poll-clear" style="padding:.45rem 1rem">Clear</button>
+            </div>
           </div>
-          <div class="card" style="text-align:center">
-            <div style="font-size:2rem">📊</div>
-            <h3>Polls</h3>
-            <p>Create &amp; manage polls</p>
-          </div>
-          <div class="card" style="text-align:center">
-            <div style="font-size:2rem">💛</div>
-            <h3>Supporters</h3>
-            <p>Donations &amp; recognition wall</p>
-          </div>
-          <div class="card" style="text-align:center">
-            <div style="font-size:2rem">👥</div>
-            <h3>Users</h3>
-            <p>Roles &amp; community members</p>
+          <table class="data-table">
+            <thead><tr><th>Question</th><th>Status</th><th>Votes</th><th>Actions</th></tr></thead>
+            <tbody id="polls-tbody"><tr><td colspan="4" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- BRANDING -->
+        <div class="admin-panel" id="panel-branding">
+          <div class="panel-title">🎨 Branding</div>
+          <div class="card">
+            <input type="hidden" id="brand-id">
+            <div class="form-grid">
+              <div class="form-field"><label>Show Name</label><input id="brand-name" placeholder="Newscapes Live"></div>
+              <div class="form-field"><label>Tagline</label><input id="brand-tagline" placeholder="Every Saturday at Noon"></div>
+              <div class="form-field" style="grid-column:1/-1"><label>Logo URL</label><input id="brand-logo" placeholder="https://... (image URL)"></div>
+            </div>
+            <div class="sub-panel">
+              <div class="sub-panel-title">Media Links (jsonb)</div>
+              <div class="form-grid">
+                <div class="form-field"><label>YouTube</label><input id="brand-yt" placeholder="https://youtube.com/..."></div>
+                <div class="form-field"><label>Twitch</label><input id="brand-twitch" placeholder="https://twitch.tv/..."></div>
+                <div class="form-field"><label>Instagram</label><input id="brand-ig" placeholder="https://instagram.com/..."></div>
+                <div class="form-field"><label>Facebook</label><input id="brand-fb" placeholder="https://facebook.com/..."></div>
+                <div class="form-field"><label>Website</label><input id="brand-web" placeholder="https://..."></div>
+                <div class="form-field"><label>Podcast</label><input id="brand-pod" placeholder="https://..."></div>
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top:1rem">
+              <button class="btn btn-primary" id="brand-save">Save Branding</button>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <footer>
-    <p>Newscapes Live Admin &mdash; <a href="../">Back to Site</a></p>
-  </footer>
+        <!-- USERS -->
+        <div class="admin-panel" id="panel-users">
+          <div class="panel-title">👥 Users</div>
+          <table class="data-table">
+            <thead><tr><th>Username</th><th>Role</th><th>Points</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- SUPPORTERS -->
+        <div class="admin-panel" id="panel-supporters">
+          <div class="panel-title">💛 Supporters &amp; Donations</div>
+          <table class="data-table" style="margin-bottom:2rem">
+            <thead><tr><th>Name</th><th>Amount</th><th>Tier</th><th>PayPal Ref</th><th>Date</th></tr></thead>
+            <tbody id="donations-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
+          <div class="section-title">Recognition Wall</div>
+          <table class="data-table">
+            <thead><tr><th>Display Name</th><th>Tier</th><th>Visible</th><th>Featured</th><th>Actions</th></tr></thead>
+            <tbody id="wall-tbody"><tr><td colspan="5" style="color:var(--muted)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+      </main>
+    </div>
+  </div>
 
   <script type="module">
     import { supabase } from '../js/supabase.js';
+    import {
+      requireAdmin, getShows, upsertShow, deleteShow,
+      upsertGuest, deleteGuest, upsertStreamLink, deleteStreamLink,
+      getPolls, upsertPoll, setPollStatus, deletePoll,
+      getBranding, saveBranding,
+      getUsers, setUserRole, awardPoints,
+      getDonations, getRecognitionWall, updateRecognitionEntry
+    } from '../js/admin.js';
 
-    async function checkAuth() {
-      const { data } = await supabase.auth.getSession();
-      const uid = data?.session?.user?.id;
-      if (!uid) return;
-      const { data: profile } = await supabase.from('profiles').select('show_role').eq('id', uid).maybeSingle();
-      if (profile?.show_role === 'admin' || profile?.show_role === 'moderator') {
-        document.getElementById('auth-gate').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
-        document.getElementById('user-email').textContent = data.session.user.email;
-      }
+    let adminCtx = null;
+    let showsCache = [];
+
+    // ── Toast ───────────────────────────────────────────────
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
     }
 
-    document.getElementById('signin-btn').addEventListener('click', async () => {
-      const email = document.getElementById('email-input').value;
-      const password = document.getElementById('pass-input').value;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { document.getElementById('auth-error').textContent = error.message; return; }
-      checkAuth();
+    // ── Auth ─────────────────────────────────────────────────
+    async function init() {
+      adminCtx = await requireAdmin();
+      if (adminCtx) showAdmin();
+    }
+
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-pass').value;
+      const errEl = document.getElementById('login-error');
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) { errEl.textContent = error.message; return; }
+      adminCtx = await requireAdmin();
+      if (!adminCtx) { errEl.textContent = 'Access denied. Admin role required.'; await supabase.auth.signOut(); return; }
+      showAdmin();
     });
 
     document.getElementById('signout-btn').addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      location.reload();
+      await supabase.auth.signOut(); location.reload();
     });
 
-    checkAuth();
+    function showAdmin() {
+      document.getElementById('auth-gate').style.display = 'none';
+      document.getElementById('admin-app').style.display = 'block';
+      document.getElementById('admin-user').textContent = adminCtx.profile.username || adminCtx.user.email;
+      loadShows();
+    }
+
+    // ── Sidebar Nav ─────────────────────────────────────────
+    document.querySelectorAll('.sidebar a[data-panel]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+        a.classList.add('active');
+        document.getElementById('panel-' + a.dataset.panel).classList.add('active');
+        const loaders = {
+          shows: loadShows, guests: loadGuests, stream: loadStreamLinks,
+          polls: loadPolls, branding: loadBranding,
+          users: loadUsers, supporters: loadSupporters
+        };
+        if (loaders[a.dataset.panel]) loaders[a.dataset.panel]();
+      });
+    });
+
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      return new Date(ts).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function populateShowSelects(shows) {
+      ['guest-show-id','link-show-id','poll-show-id'].forEach(id => {
+        const sel = document.getElementById(id);
+        const first = sel.options[0];
+        sel.innerHTML = '';
+        sel.appendChild(first);
+        shows.forEach(s => {
+          const o = document.createElement('option');
+          o.value = s.id;
+          o.textContent = `Ep ${s.episode_number || '?'} — ${s.title}`;
+          sel.appendChild(o);
+        });
+      });
+    }
+
+    // ── SHOWS ────────────────────────────────────────────────
+    async function loadShows() {
+      showsCache = await getShows();
+      populateShowSelects(showsCache);
+      const tb = document.getElementById('shows-tbody');
+      if (!showsCache.length) { tb.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">No shows yet.</td></tr>'; return; }
+      tb.innerHTML = showsCache.map(s => `
+        <tr>
+          <td>${s.episode_number || '—'}</td>
+          <td><strong>${s.title}</strong></td>
+          <td>${fmtDate(s.scheduled_at)}</td>
+          <td><span class="status-badge status-${s.status}">${s.status}</span></td>
+          <td>${s.guests?.length || 0} guest(s)</td>
+          <td>
+            <button class="btn btn-outline" style="padding:.25rem .6rem;font-size:.78rem" onclick="editShow('${s.id}')">Edit</button>
+            <button style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:.4rem" onclick="removeShow('${s.id}')">&#128465;</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    window.editShow = (id) => {
+      const s = showsCache.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('show-id').value = s.id;
+      document.getElementById('show-title').value = s.title || '';
+      document.getElementById('show-ep').value = s.episode_number || '';
+      document.getElementById('show-date').value = s.scheduled_at ? s.scheduled_at.slice(0,16) : '';
+      document.getElementById('show-status').value = s.status || 'scheduled';
+      document.getElementById('show-notes').value = s.notes || '';
+      document.getElementById('show-form-title').textContent = 'Edit Show';
+    };
+
+    window.removeShow = async (id) => {
+      if (!confirm('Delete this show and all its guests/links?')) return;
+      await deleteShow(id); toast('Show deleted.'); loadShows();
+    };
+
+    document.getElementById('show-save').addEventListener('click', async () => {
+      const id = document.getElementById('show-id').value;
+      const payload = {
+        title: document.getElementById('show-title').value.trim(),
+        episode_number: parseInt(document.getElementById('show-ep').value) || null,
+        scheduled_at: document.getElementById('show-date').value || null,
+        status: document.getElementById('show-status').value,
+        notes: document.getElementById('show-notes').value.trim() || null,
+      };
+      if (!payload.title) { toast('Title required.'); return; }
+      if (id) payload.id = id;
+      await upsertShow(payload);
+      toast('Show saved ✔'); document.getElementById('show-clear').click(); loadShows();
+    });
+
+    document.getElementById('show-clear').addEventListener('click', () => {
+      ['show-id','show-title','show-ep','show-date','show-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('show-status').value = 'scheduled';
+      document.getElementById('show-form-title').textContent = 'New Show';
+    });
+
+    // ── GUESTS ───────────────────────────────────────────────
+    let guestsCache = [];
+    async function loadGuests() {
+      if (!showsCache.length) showsCache = await getShows();
+      populateShowSelects(showsCache);
+      const { data } = await supabase.from('guests').select('*, shows(title, episode_number)').order('created_at', { ascending: false });
+      guestsCache = data || [];
+      const tb = document.getElementById('guests-tbody');
+      if (!guestsCache.length) { tb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No guests yet.</td></tr>'; return; }
+      tb.innerHTML = guestsCache.map(g => `
+        <tr>
+          <td><strong>${g.name}</strong>${g.bio ? '<br><span style="color:var(--muted);font-size:.8rem">' + g.bio.slice(0,60) + '...</span>' : ''}</td>
+          <td>${g.shows ? `Ep ${g.shows.episode_number || '?'} — ${g.shows.title}` : '—'}</td>
+          <td><span class="status-badge ${g.confirmed ? 'status-completed' : 'status-scheduled'}">${g.confirmed ? 'Confirmed' : 'Pending'}</span></td>
+          <td>${g.social_handle || '—'}</td>
+          <td>
+            <button class="btn btn-outline" style="padding:.25rem .6rem;font-size:.78rem" onclick="editGuest('${g.id}')">Edit</button>
+            <button style="background:none;border:none;color:var(--muted);cursor:pointer" onclick="removeGuest('${g.id}')">&#128465;</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    window.editGuest = (id) => {
+      const g = guestsCache.find(x => x.id === id);
+      if (!g) return;
+      document.getElementById('guest-id').value = g.id;
+      document.getElementById('guest-show-id').value = g.show_id || '';
+      document.getElementById('guest-name').value = g.name || '';
+      document.getElementById('guest-bio').value = g.bio || '';
+      document.getElementById('guest-social').value = g.social_handle || '';
+      document.getElementById('guest-order').value = g.appearance_order || 0;
+      document.getElementById('guest-confirmed').value = String(g.confirmed);
+    };
+
+    window.removeGuest = async (id) => {
+      if (!confirm('Delete guest?')) return;
+      await deleteGuest(id); toast('Guest deleted.'); loadGuests();
+    };
+
+    document.getElementById('guest-save').addEventListener('click', async () => {
+      const id = document.getElementById('guest-id').value;
+      const payload = {
+        show_id: document.getElementById('guest-show-id').value || null,
+        name: document.getElementById('guest-name').value.trim(),
+        bio: document.getElementById('guest-bio').value.trim() || null,
+        social_handle: document.getElementById('guest-social').value.trim() || null,
+        appearance_order: parseInt(document.getElementById('guest-order').value) || 0,
+        confirmed: document.getElementById('guest-confirmed').value === 'true',
+      };
+      if (!payload.name) { toast('Name required.'); return; }
+      if (id) payload.id = id;
+      await upsertGuest(payload);
+      toast('Guest saved ✔'); document.getElementById('guest-clear').click(); loadGuests();
+    });
+
+    document.getElementById('guest-clear').addEventListener('click', () => {
+      ['guest-id','guest-name','guest-bio','guest-social'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('guest-order').value = '0';
+      document.getElementById('guest-confirmed').value = 'false';
+    });
+
+    // ── STREAM LINKS ─────────────────────────────────────────
+    let linksCache = [];
+    async function loadStreamLinks() {
+      if (!showsCache.length) showsCache = await getShows();
+      populateShowSelects(showsCache);
+      const { data } = await supabase.from('stream_links').select('*, shows(title, episode_number)').order('created_at', { ascending: false });
+      linksCache = data || [];
+      const tb = document.getElementById('links-tbody');
+      if (!linksCache.length) { tb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No stream links yet.</td></tr>'; return; }
+      tb.innerHTML = linksCache.map(l => `
+        <tr>
+          <td>${l.shows ? `Ep ${l.shows.episode_number || '?'} — ${l.shows.title}` : '—'}</td>
+          <td>${l.platform}</td>
+          <td><a href="${l.url}" target="_blank" style="font-size:.82rem">${l.url.slice(0,40)}...</a></td>
+          <td>${l.is_primary ? '✅' : ''}</td>
+          <td><button style="background:none;border:none;color:var(--muted);cursor:pointer" onclick="removeLink('${l.id}')">&#128465;</button></td>
+        </tr>`).join('');
+    }
+
+    window.removeLink = async (id) => {
+      if (!confirm('Delete stream link?')) return;
+      await deleteStreamLink(id); toast('Link deleted.'); loadStreamLinks();
+    };
+
+    document.getElementById('link-save').addEventListener('click', async () => {
+      const id = document.getElementById('link-id').value;
+      const payload = {
+        show_id: document.getElementById('link-show-id').value || null,
+        platform: document.getElementById('link-platform').value.trim(),
+        url: document.getElementById('link-url').value.trim(),
+        is_primary: document.getElementById('link-primary').value === 'true',
+      };
+      if (!payload.url || !payload.platform) { toast('Platform and URL required.'); return; }
+      if (id) payload.id = id;
+      await upsertStreamLink(payload);
+      toast('Stream link saved ✔'); document.getElementById('link-clear').click(); loadStreamLinks();
+    });
+
+    document.getElementById('link-clear').addEventListener('click', () => {
+      ['link-id','link-platform','link-url'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('link-primary').value = 'false';
+    });
+
+    // ── POLLS ─────────────────────────────────────────────────
+    let pollsCache = [];
+    async function loadPolls() {
+      if (!showsCache.length) showsCache = await getShows();
+      populateShowSelects(showsCache);
+      pollsCache = await getPolls();
+      const tb = document.getElementById('polls-tbody');
+      if (!pollsCache.length) { tb.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No polls yet.</td></tr>'; return; }
+      tb.innerHTML = pollsCache.map(p => `
+        <tr>
+          <td><strong>${p.question}</strong></td>
+          <td><span class="status-badge status-${p.status}">${p.status}</span></td>
+          <td>${p.poll_votes?.length || 0}</td>
+          <td>
+            ${p.status === 'draft' ? `<button class="btn btn-outline" style="padding:.22rem .55rem;font-size:.75rem" onclick="openPoll('${p.id}')">Open</button>` : ''}
+            ${p.status === 'open' ? `<button class="btn btn-outline" style="padding:.22rem .55rem;font-size:.75rem" onclick="closePoll('${p.id}')">Close</button>` : ''}
+            <button class="btn btn-outline" style="padding:.22rem .55rem;font-size:.75rem;margin-left:.3rem" onclick="editPoll('${p.id}')">Edit</button>
+            <button style="background:none;border:none;color:var(--muted);cursor:pointer" onclick="removePoll('${p.id}')">&#128465;</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    window.openPoll = async (id) => { await setPollStatus(id, 'open'); toast('Poll opened.'); loadPolls(); };
+    window.closePoll = async (id) => { await setPollStatus(id, 'closed'); toast('Poll closed.'); loadPolls(); };
+    window.removePoll = async (id) => { if (!confirm('Delete poll and all votes?')) return; await deletePoll(id); toast('Poll deleted.'); loadPolls(); };
+    window.editPoll = (id) => {
+      const p = pollsCache.find(x => x.id === id);
+      if (!p) return;
+      const opts = Array.isArray(p.options) ? p.options : JSON.parse(p.options || '[]');
+      document.getElementById('poll-id').value = p.id;
+      document.getElementById('poll-question').value = p.question || '';
+      document.getElementById('poll-options').value = opts.join('\n');
+      document.getElementById('poll-show-id').value = p.show_id || '';
+      document.getElementById('poll-status').value = p.status || 'draft';
+    };
+
+    document.getElementById('poll-save').addEventListener('click', async () => {
+      const id = document.getElementById('poll-id').value;
+      const opts = document.getElementById('poll-options').value.split('\n').map(s => s.trim()).filter(Boolean);
+      const payload = {
+        question: document.getElementById('poll-question').value.trim(),
+        options: opts,
+        show_id: document.getElementById('poll-show-id').value || null,
+        status: document.getElementById('poll-status').value,
+      };
+      if (!payload.question || opts.length < 2) { toast('Question and at least 2 options required.'); return; }
+      if (id) payload.id = id;
+      await upsertPoll(payload);
+      toast('Poll saved ✔'); document.getElementById('poll-clear').click(); loadPolls();
+    });
+
+    document.getElementById('poll-clear').addEventListener('click', () => {
+      ['poll-id','poll-question','poll-options'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('poll-status').value = 'draft';
+    });
+
+    // ── BRANDING ─────────────────────────────────────────────
+    async function loadBranding() {
+      const b = await getBranding();
+      if (!b) return;
+      document.getElementById('brand-id').value = b.id || '';
+      document.getElementById('brand-name').value = b.show_name || '';
+      document.getElementById('brand-tagline').value = b.tagline || '';
+      document.getElementById('brand-logo').value = b.logo_url || '';
+      const ml = b.media_links || {};
+      document.getElementById('brand-yt').value = ml.youtube || '';
+      document.getElementById('brand-twitch').value = ml.twitch || '';
+      document.getElementById('brand-ig').value = ml.instagram || '';
+      document.getElementById('brand-fb').value = ml.facebook || '';
+      document.getElementById('brand-web').value = ml.website || '';
+      document.getElementById('brand-pod').value = ml.podcast || '';
+    }
+
+    document.getElementById('brand-save').addEventListener('click', async () => {
+      const id = document.getElementById('brand-id').value;
+      const payload = {
+        show_name: document.getElementById('brand-name').value.trim(),
+        tagline: document.getElementById('brand-tagline').value.trim() || null,
+        logo_url: document.getElementById('brand-logo').value.trim() || null,
+        media_links: {
+          youtube: document.getElementById('brand-yt').value.trim() || null,
+          twitch: document.getElementById('brand-twitch').value.trim() || null,
+          instagram: document.getElementById('brand-ig').value.trim() || null,
+          facebook: document.getElementById('brand-fb').value.trim() || null,
+          website: document.getElementById('brand-web').value.trim() || null,
+          podcast: document.getElementById('brand-pod').value.trim() || null,
+        },
+        active: true,
+      };
+      if (!payload.show_name) { toast('Show name required.'); return; }
+      if (id) payload.id = id;
+      await saveBranding(payload);
+      toast('Branding saved ✔');
+    });
+
+    // ── USERS ─────────────────────────────────────────────────
+    let usersCache = [];
+    async function loadUsers() {
+      usersCache = await getUsers();
+      const tb = document.getElementById('users-tbody');
+      if (!usersCache.length) { tb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No users yet.</td></tr>'; return; }
+      tb.innerHTML = usersCache.map(u => `
+        <tr>
+          <td><strong>${u.username || '(no username)'}</strong><br><span style="color:var(--muted);font-size:.78rem">${u.full_name || ''}</span></td>
+          <td><span class="role-badge role-${u.show_role}">${u.show_role}</span></td>
+          <td>${u.points_total}</td>
+          <td style="color:var(--muted);font-size:.82rem">${fmtDate(u.created_at)}</td>
+          <td>
+            <select onchange="changeRole('${u.id}', this.value)" style="background:var(--surface2);color:var(--text);border:1px solid var(--surface2);border-radius:4px;padding:.2rem .4rem;font-size:.8rem">
+              ${['viewer','member','supporter','moderator','admin'].map(r => `<option value="${r}" ${u.show_role===r?'selected':''}>${r}</option>`).join('')}
+            </select>
+            <button class="btn btn-outline" style="padding:.2rem .5rem;font-size:.75rem;margin-left:.3rem" onclick="promptAwardPoints('${u.id}','${u.username||'user'}')">+pts</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    window.changeRole = async (id, role) => {
+      await setUserRole(id, role); toast('Role updated ✔');
+    };
+
+    window.promptAwardPoints = async (id, name) => {
+      const pts = parseInt(prompt(`Award points to ${name}:`));
+      if (isNaN(pts)) return;
+      await awardPoints(id, 'manual_award', pts);
+      toast(`+${pts} pts awarded to ${name} ✔`); loadUsers();
+    };
+
+    // ── SUPPORTERS ───────────────────────────────────────────
+    async function loadSupporters() {
+      const donations = await getDonations();
+      const wall = await getRecognitionWall();
+
+      const dtb = document.getElementById('donations-tbody');
+      if (!donations.length) { dtb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No donations yet.</td></tr>'; }
+      else dtb.innerHTML = donations.map(d => `
+        <tr>
+          <td>${d.contributors?.display_name || 'Anonymous'}</td>
+          <td style="color:var(--accent);font-weight:700">$${parseFloat(d.amount_usd).toFixed(2)}</td>
+          <td><span class="role-badge role-${d.tier}">${d.tier}</span></td>
+          <td style="color:var(--muted);font-size:.8rem">${d.paypal_txn_id || d.payment_ref || '—'}</td>
+          <td style="color:var(--muted);font-size:.82rem">${fmtDate(d.created_at)}</td>
+        </tr>`).join('');
+
+      const wtb = document.getElementById('wall-tbody');
+      if (!wall.length) { wtb.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">Recognition wall is empty.</td></tr>'; }
+      else wtb.innerHTML = wall.map(w => `
+        <tr>
+          <td><strong>${w.display_name}</strong>${w.recognition_note ? '<br><span style="color:var(--muted);font-size:.8rem">' + w.recognition_note + '</span>' : ''}</td>
+          <td><span class="role-badge role-${w.tier}">${w.tier}</span></td>
+          <td>
+            <input type="checkbox" ${w.is_visible ? 'checked' : ''} onchange="toggleVisible('${w.id}', this.checked)">
+          </td>
+          <td>
+            <input type="checkbox" ${w.featured ? 'checked' : ''} onchange="toggleFeatured('${w.id}', this.checked)">
+          </td>
+          <td style="color:var(--muted);font-size:.82rem">${fmtDate(w.created_at)}</td>
+        </tr>`).join('');
+    }
+
+    window.toggleVisible = async (id, val) => { await updateRecognitionEntry(id, { is_visible: val }); toast('Visibility updated.'); };
+    window.toggleFeatured = async (id, val) => { await updateRecognitionEntry(id, { featured: val }); toast('Featured updated.'); };
+
+    // ── Boot ──────────────────────────────────────────────────
+    init();
   </script>
 </body>
 </html>
