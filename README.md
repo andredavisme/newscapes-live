@@ -6,6 +6,20 @@ Web application for the **Newscapes Live** show at [Newscapes Brewing](https://m
 
 ---
 
+## Milestones
+
+Each milestone is defined by a passing test. Documentation is updated after approval at each gate.
+
+| # | Milestone | Status | Tested |
+|---|-----------|--------|--------|
+| 1 | Schema applied, auth trigger live, profiles backfilled, show seeded | ✅ Complete | 2026-05-02 9:19 AM ET |
+| 2 | Homepage loads branding + stream player from DB | 🔲 Pending | — |
+| 3 | Admin login, show CRUD, stream mode toggle | 🔲 Pending | — |
+| 4 | Community signup, post, like, comment, leaderboard | 🔲 Pending | — |
+| 5 | PayPal donation → contributor + recognition wall + points | 🔲 Pending | — |
+
+---
+
 ## Database Philosophy
 
 Newscapes Live integrates with a **shared master Supabase project** that supports multiple applications under the same ecosystem. The guiding principle for all database work is:
@@ -87,8 +101,8 @@ newscapes-live/
 
 | Table | Origin | Newscapes Usage |
 |-------|--------|-----------------|
-| `profiles` | Master — Supabase auth users | Extended with `show_role`, `points_total`; drives all auth, roles, leaderboard |
-| `branding` | Master — multi-app branding config | Extended with `show_name`, `media_links`; Newscapes reads active row for homepage |
+| `profiles` | Master — Supabase auth users | Created with `show_role`, `points_total`, `username`, `full_name`, `avatar_url`; auto-created on signup via trigger; 3 existing users backfilled |
+| `branding` | Master — multi-app branding config | Extended with `show_name`, `media_links`; active row seeded with `show_name = 'Newscapes Live'` |
 | `leads` | Master — 207 Analytix intake | Referenced if a supporter inquiry maps to a lead record |
 
 ### Newscapes-Specific (created for this app)
@@ -107,6 +121,12 @@ newscapes-live/
 | `donations` | PayPal donation records — amount, tier, `paypal_txn_id` |
 | `recognition_wall` | Public supporter wall — display name, tier, `is_visible`, `featured`, `sort_order` |
 | `points_log` | Audit log for all point award events |
+
+### RPCs
+
+| Function | Purpose |
+|----------|---------|
+| `increment_points(uid, amount)` | Atomically adds points to `profiles.points_total` — called by PayPal webhook and client-side point events |
 
 ---
 
@@ -144,7 +164,7 @@ The `shows.stream_mode` field controls the homepage player. Admins toggle it fro
 
 ## Auth & Roles
 
-Auth is handled by Supabase Auth (email/password). On sign-up, a `profiles` row is created via database trigger with `show_role = 'viewer'`.
+Auth is handled by Supabase Auth (email/password). On sign-up, a `profiles` row is created via database trigger (`on_auth_user_created`) with `show_role = 'viewer'`.
 
 | Role | Access |
 |------|--------|
@@ -155,6 +175,14 @@ Auth is handled by Supabase Auth (email/password). On sign-up, a `profiles` row 
 | `admin` | Full admin dashboard access |
 
 Admin sign-in: `/admin/` — email + password via Supabase Auth. On load, a **passive** session check auto-logs in returning admins without touching the login form.
+
+**Existing accounts (as of Milestone 1):**
+
+| Username | Role |
+|----------|------|
+| `owner` | `admin` |
+| `admin` | `admin` |
+| `andre.davis.me` | `admin` |
 
 ---
 
@@ -173,20 +201,25 @@ Admin sign-in: `/admin/` — email + password via Supabase Auth. On load, a **pa
 
 ## Change Log
 
-### 2026-05-02 (today)
+### 2026-05-02
 
 | Time (ET) | Commit | Description |
 |-----------|--------|-------------|
-| 9:13 AM | [docs: master DB integration philosophy](https://github.com/andredavisme/newscapes-live/commit/main) | Added Database Philosophy section; updated tables to distinguish shared vs. Newscapes-specific |
+| 9:21 AM | [docs: milestone 1 complete](https://github.com/andredavisme/newscapes-live/commit/main) | Milestone tracker added; auth, schema, seed all verified |
+| 9:19 AM | DB | Episode 1 show seeded (`status=live`, `stream_mode=playlist`) |
+| 9:16 AM | DB | Auth trigger verified; 3 existing users backfilled to `profiles`; all set to `admin` |
+| 9:13 AM | [docs: master DB integration philosophy](https://github.com/andredavisme/newscapes-live/commit/7d0d669d1fc0603747a58a39a4e1336a57003bfa) | Added Database Philosophy section |
+| 9:13 AM | DB | `newscapes_schema` migration: 12 Newscapes tables + RLS + `increment_points` RPC |
+| 9:13 AM | DB | `newscapes_profiles` migration: `profiles` table + auth trigger |
 | 9:02 AM | [docs: full chronicle](https://github.com/andredavisme/newscapes-live/commit/5210aee8dcaaa88777a3cd5e761f0139cdf380a0) | Full project chronicle README |
-| 9:01 AM | [fix: passive session check on admin load](https://github.com/andredavisme/newscapes-live/commit/87c62b2ee312eeef649d7de4d418b2ec4a93658f) | Replaced racing `init()` with passive `getSession()` — login form no longer disappears on input |
-| 8:56 AM | [fix: home nav link relative path](https://github.com/andredavisme/newscapes-live/commit/9032a5bde9ce9997fba7f9276819d23c7d117194) | Changed `href="/"` → `href="./"` to prevent GitHub Pages 404 on Home nav click |
-| 8:52 AM | [docs + feat: README + stream mode toggle card](https://github.com/andredavisme/newscapes-live/commit/521840080d73c7afb1b3459de98711dfc4681dca) | Added stream mode toggle card to admin Shows panel; initial README |
-| ~12:00 PM | [feat: YouTube playlist fallback + stream mode helper](https://github.com/andredavisme/newscapes-live/commit/58f21318debbd430bb304e29f54c089dfa693be2) | Randomized playlist embed when `stream_mode = playlist` |
-| ~11:55 AM | [fix: countdown timezone (America/New\_York)](https://github.com/andredavisme/newscapes-live/commit/3401ad700c2016f1f5b53b37f460d2cc3e9efa5e) | Countdown now correctly targets noon ET regardless of viewer timezone |
-| ~1:57 AM | [feat: full admin panel](https://github.com/andredavisme/newscapes-live/commit/96b6b709e132b0531cdcad4c83de8cd2cf52126e) | Built complete admin dashboard — shows, guests, polls, branding, users, supporters/donations |
-| ~1:53 AM | [feat: community board + auth](https://github.com/andredavisme/newscapes-live/commit/65583ca3b3db104ce1fc5add26df9551cc71628c) | Community board with posts, likes, comments, polls, leaderboard, and Supabase auth flow |
-| ~1:47 AM | [feat: initial GitHub Pages scaffold](https://github.com/andredavisme/newscapes-live/commit/5aae17bbbbfa786d1dd6fa01a1bd37b122a67c80) | Homepage, community, support, admin pages; CSS design system; JS module structure |
+| 9:01 AM | [fix: passive session check on admin load](https://github.com/andredavisme/newscapes-live/commit/87c62b2ee312eeef649d7de4d418b2ec4a93658f) | Replaced racing `init()` with passive `getSession()` |
+| 8:56 AM | [fix: home nav link relative path](https://github.com/andredavisme/newscapes-live/commit/9032a5bde9ce9997fba7f9276819d23c7d117194) | Changed `href="/"` → `href="./"` |
+| 8:52 AM | [docs + feat: README + stream mode toggle card](https://github.com/andredavisme/newscapes-live/commit/521840080d73c7afb1b3459de98711dfc4681dca) | Stream mode toggle card; initial README |
+| ~12:00 PM | [feat: YouTube playlist fallback](https://github.com/andredavisme/newscapes-live/commit/58f21318debbd430bb304e29f54c089dfa693be2) | Randomized playlist embed |
+| ~11:55 AM | [fix: countdown timezone](https://github.com/andredavisme/newscapes-live/commit/3401ad700c2016f1f5b53b37f460d2cc3e9efa5e) | Noon ET countdown fix |
+| ~1:57 AM | [feat: full admin panel](https://github.com/andredavisme/newscapes-live/commit/96b6b709e132b0531cdcad4c83de8cd2cf52126e) | Complete admin dashboard |
+| ~1:53 AM | [feat: community board + auth](https://github.com/andredavisme/newscapes-live/commit/65583ca3b3db104ce1fc5add26df9551cc71628c) | Community board, polls, leaderboard, auth |
+| ~1:47 AM | [feat: initial scaffold](https://github.com/andredavisme/newscapes-live/commit/5aae17bbbbfa786d1dd6fa01a1bd37b122a67c80) | Homepage, community, support, admin pages |
 | ~1:37 AM | [Initial commit](https://github.com/andredavisme/newscapes-live/commit/77e81635aae696a326352349730e7f36e1c708ad) | Repo created |
 
 ### Pre-repo (Supabase / Edge Function history)
