@@ -342,6 +342,19 @@ function populateShowSelects(shows) {
   });
 }
 
+// ── Show/hide fab based on admin status ─────────────────────────
+async function updateFab() {
+  const fab = document.getElementById('admin-fab');
+  const ctx = await requireAdmin();
+  if (ctx) {
+    adminCtx = ctx;
+    fab.style.display = 'flex';
+    document.getElementById('adm-user').textContent = ctx.profile.username || ctx.user.email;
+  } else {
+    fab.style.display = 'none';
+  }
+}
+
 // ── Drawer open/close ──────────────────────────────────────────
 function openDrawer() {
   document.getElementById('admin-drawer').classList.add('open');
@@ -675,16 +688,8 @@ async function admLoadSupporters() {
 window.admToggleVisible = async (id, val) => { await updateRecognitionEntry(id, { is_visible: val }); toast('Updated.'); };
 window.admToggleFeatured = async (id, val) => { await updateRecognitionEntry(id, { featured: val }); toast('Updated.'); };
 
-// ── Init: check if user is admin ───────────────────────────────
-supabase.auth.onAuthStateChange(async (_event, session) => {
-  const fab = document.getElementById('admin-fab');
-  if (!session) { fab.style.display = 'none'; return; }
-  const ctx = await requireAdmin();
-  if (ctx) {
-    adminCtx = ctx;
-    fab.style.display = 'flex';
-    document.getElementById('adm-user').textContent = ctx.profile.username || ctx.user.email;
-  } else {
-    fab.style.display = 'none';
-  }
-});
+// ── Init: immediate session check + subscribe to future changes ──
+// The dynamic import() means we may miss the initial SIGNED_IN event,
+// so we proactively check getSession() right away.
+updateFab();
+supabase.auth.onAuthStateChange(() => updateFab());
