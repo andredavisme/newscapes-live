@@ -46,7 +46,7 @@
       </div>
 
       <div class="cta-group">
-        <a id="stream-btn" class="btn btn-primary" href="https://youtu.be/bAD3xl7eM8s?si=eVPDxo5oRg81udY5" target="_blank" rel="noopener">▶ Watch Live</a>
+        <a id="stream-btn" class="btn btn-primary" href="#video-section" rel="noopener">▶ Watch Live</a>
         <a class="btn btn-outline" href="community/">Join Community</a>
         <a class="btn btn-paypal" href="https://www.paypal.com/ncp/payment/SQ9X3PE9QF5WC" target="_blank" rel="noopener">💛 Support the Show</a>
       </div>
@@ -60,7 +60,7 @@
       <div class="video-wrapper">
         <iframe
           id="video-player"
-          src="https://www.youtube.com/embed/bAD3xl7eM8s?si=eVPDxo5oRg81udY5&autoplay=0"
+          src=""
           width="100%"
           height="480"
           frameborder="0"
@@ -132,6 +132,19 @@
 
   <script type="module">
     import { supabase } from './js/supabase.js';
+
+    // Load stream URL from settings table
+    (async () => {
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'stream_url')
+        .maybeSingle();
+      if (data?.value) {
+        document.getElementById('video-player').src = data.value;
+      }
+    })();
+
     // Show admin link if user is admin
     supabase.auth.getSession().then(async ({ data }) => {
       const uid = data?.session?.user?.id;
