@@ -32,9 +32,7 @@ export async function deleteShow(id) {
 }
 
 // ── Stream Mode ────────────────────────────────────────────
-// mode: 'live' | 'playlist' | 'off'
 export async function setStreamMode(mode) {
-  // Updates the upcoming/live show's stream_mode
   const { data: show } = await supabase
     .from('shows')
     .select('id')
