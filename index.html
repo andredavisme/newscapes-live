@@ -21,7 +21,6 @@
           <a href="./">Home</a>
           <a href="community/">Community</a>
           <a href="support/">Support</a>
-          <a href="admin/" id="admin-link" style="display:none">Admin</a>
         </div>
       </nav>
     </div>
@@ -129,35 +128,6 @@
   </footer>
 
   <script type="module" src="js/app.js"></script>
-
-  <script type="module">
-    import { supabase } from './js/supabase.js';
-
-    // Load stream URL from vault-backed edge function
-    (async () => {
-      try {
-        const res = await fetch('https://nmemmfblpzrkwyljpmvp.supabase.co/functions/v1/get-stream-url');
-        const { url } = await res.json();
-        if (url) document.getElementById('video-player').src = url;
-      } catch (e) {
-        console.warn('Could not load stream URL:', e.message);
-      }
-    })();
-
-    // Show admin link if user is admin
-    supabase.auth.getSession().then(async ({ data }) => {
-      const uid = data?.session?.user?.id;
-      if (!uid) return;
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('show_role')
-        .eq('id', uid)
-        .maybeSingle();
-      if (profile?.show_role === 'admin' || profile?.show_role === 'moderator') {
-        document.getElementById('admin-link').style.display = 'inline';
-      }
-    });
-  </script>
 
 </body>
 </html>
