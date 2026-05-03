@@ -181,7 +181,7 @@ const frag = document.createRange().createContextualFragment(`
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                 <button class="btn btn-outline" id="adm-mode-live" style="padding:.3rem .7rem;font-size:.8rem">🔴 Live</button>
                 <button class="btn btn-outline" id="adm-mode-playlist" style="padding:.3rem .7rem;font-size:.8rem">🎬 Playlist</button>
-                <button class="btn btn-outline" id="adm-mode-off" style="padding:.3rem .7rem;font-size:.8rem">⏹ Off</button>
+                <button class="btn btn-outline" id="adm-mode-recent" style="padding:.3rem .7rem;font-size:.8rem">📼 Recent</button>
               </div>
             </div>
             <div id="adm-mode-status" style="font-size:.8rem;color:var(--muted)">Loading...</div>
@@ -233,9 +233,26 @@ const frag = document.createRange().createContextualFragment(`
           <tbody id="adm-guests-tbody"><tr><td colspan="4" style="color:var(--muted)">Loading...</td></tr></tbody></table>
         </div>
 
-        <!-- STREAM LINKS -->
+        <!-- STREAM LINKS + URL CONFIG -->
         <div class="adm-panel" id="adm-panel-stream">
-          <div class="adm-panel-title">📡 Stream Links</div>
+          <div class="adm-panel-title">📡 Stream</div>
+
+          <!-- Stream URL Config -->
+          <div class="adm-card">
+            <div style="font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:.75rem">Stream URLs</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem">These URLs drive the homepage player for each mode. Paste a full YouTube watch or embed URL.</div>
+            <div class="adm-form-grid single">
+              <div class="adm-field"><label>🔴 Live Stream URL</label><input id="adm-url-live" placeholder="https://www.youtube.com/watch?v=..."></div>
+              <div class="adm-field"><label>🎬 Playlist URL</label><input id="adm-url-playlist" placeholder="https://www.youtube.com/playlist?list=..."></div>
+              <div class="adm-field"><label>📼 Recent Episodes URL</label><input id="adm-url-recent" placeholder="https://www.youtube.com/playlist?list=..."></div>
+            </div>
+            <div class="adm-actions">
+              <button class="btn btn-primary" id="adm-url-save">Save URLs</button>
+            </div>
+          </div>
+
+          <!-- Per-show stream links -->
+          <div style="font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:.6rem;margin-top:.25rem">Per-Show Links</div>
           <div class="adm-card">
             <input type="hidden" id="adm-link-id">
             <div class="adm-form-grid">
@@ -401,7 +418,25 @@ async function admSetMode(mode) {
 }
 document.getElementById('adm-mode-live').addEventListener('click', () => admSetMode('live'));
 document.getElementById('adm-mode-playlist').addEventListener('click', () => admSetMode('playlist'));
-document.getElementById('adm-mode-off').addEventListener('click', () => admSetMode('off'));
+document.getElementById('adm-mode-recent').addEventListener('click', () => admSetMode('recent'));
+
+// ── Stream URL config (saved to branding.media_links) ───────────
+async function admLoadStreamUrls() {
+  const b = await getBranding(); if (!b) return;
+  const ml = b.media_links || {};
+  document.getElementById('adm-url-live').value = ml.stream_live || '';
+  document.getElementById('adm-url-playlist').value = ml.stream_playlist || '';
+  document.getElementById('adm-url-recent').value = ml.stream_recent || '';
+}
+document.getElementById('adm-url-save').addEventListener('click', async () => {
+  const b = await getBranding();
+  const ml = Object.assign({}, b?.media_links || {});
+  ml.stream_live = document.getElementById('adm-url-live').value.trim() || null;
+  ml.stream_playlist = document.getElementById('adm-url-playlist').value.trim() || null;
+  ml.stream_recent = document.getElementById('adm-url-recent').value.trim() || null;
+  const payload = Object.assign({}, b || {}, { media_links: ml, is_active: true });
+  await saveBranding(payload); toast('Stream URLs saved ✔');
+});
 
 // ── Shows ──────────────────────────────────────────────────────
 async function admLoadShows() {
@@ -512,6 +547,7 @@ let linksCache = [];
 async function admLoadLinks() {
   if (!showsCache.length) showsCache = await getShows();
   populateShowSelects(showsCache);
+  admLoadStreamUrls(); // also populate the URL config fields
   const { data } = await supabase.from('stream_links').select('*, shows(title, episode_number)').order('created_at', { ascending: false });
   linksCache = data || [];
   const tb = document.getElementById('adm-links-tbody');
@@ -520,7 +556,7 @@ async function admLoadLinks() {
     <tr>
       <td>${l.shows ? `Ep ${l.shows.episode_number||'?'} — ${l.shows.title}` : '—'}</td>
       <td>${l.platform}</td>
-      <td style="font-size:.78rem"><a href="${l.url}" target="_blank">${l.url.slice(0,35)}...</a></td>
+      <td style="font-size:.78rem"><a href="${l.url}" target="_blank" style="color:var(--accent)">${l.url.length>40?l.url.slice(0,40)+'…':l.url}</a></td>
       <td>${l.is_primary ? '✅' : ''}</td>
       <td><button style="background:none;border:none;color:var(--muted);cursor:pointer" onclick="admRemoveLink('${l.id}')">🗑</button></td>
     </tr>`).join('');
@@ -688,8 +724,6 @@ async function admLoadSupporters() {
 window.admToggleVisible = async (id, val) => { await updateRecognitionEntry(id, { is_visible: val }); toast('Updated.'); };
 window.admToggleFeatured = async (id, val) => { await updateRecognitionEntry(id, { featured: val }); toast('Updated.'); };
 
-// ── Init: immediate session check + subscribe to future changes ──
-// The dynamic import() means we may miss the initial SIGNED_IN event,
-// so we proactively check getSession() right away.
+// ── Init ───────────────────────────────────────────────────────
 updateFab();
 supabase.auth.onAuthStateChange(() => updateFab());

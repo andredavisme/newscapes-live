@@ -1,13 +1,24 @@
 import { supabase } from './supabase.js';
 
-// ── Playlist config ───────────────────────────────────────────
-const PLAYLIST_IDS = [
+// ── Fallback playlist IDs (used only if branding has no stream URLs) ───
+const FALLBACK_PLAYLIST_IDS = [
   'PLNcy2saXCtKzb6Bk_keP06tN9dX1fXomc',
   'PLNcy2saXCtKxxsRjzp1IMfD2XKEIue01a',
 ];
 
-function getRandomPlaylistEmbed() {
-  const id = PLAYLIST_IDS[Math.floor(Math.random() * PLAYLIST_IDS.length)];
+function toEmbedUrl(url) {
+  if (!url) return null;
+  // playlist URL → embed videoseries
+  if (url.includes('playlist?list=')) {
+    const list = new URL(url).searchParams.get('list');
+    return `https://www.youtube.com/embed/videoseries?list=${list}&autoplay=1`;
+  }
+  // watch URL → embed
+  return url.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/');
+}
+
+function getFallbackPlaylistEmbed() {
+  const id = FALLBACK_PLAYLIST_IDS[Math.floor(Math.random() * FALLBACK_PLAYLIST_IDS.length)];
   return `https://www.youtube.com/embed/videoseries?list=${id}&autoplay=1&shuffle=1`;
 }
 
@@ -45,44 +56,52 @@ function updateCountdown() {
 setInterval(updateCountdown, 1000);
 updateCountdown();
 
-// ── Stream mode (live | playlist | off) ──────────────────────
+// ── Stream mode (live | playlist | recent) ───────────────────
 async function loadStreamMode() {
-  const { data } = await supabase
-    .from('shows')
-    .select('stream_mode, stream_links(*)')
-    .in('status', ['scheduled', 'live'])
-    .order('scheduled_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Load branding for stream URLs and the next show for mode + live link
+  const [brandRes, showRes] = await Promise.all([
+    supabase.from('branding').select('*').eq('is_active', true).maybeSingle(),
+    supabase.from('shows').select('stream_mode, stream_links(*)').in('status', ['scheduled','live']).order('scheduled_at', { ascending: true }).limit(1).maybeSingle()
+  ]);
 
-  const mode = data?.stream_mode || 'playlist';
+  const branding = brandRes.data;
+  const show = showRes.data;
+  const mode = show?.stream_mode || 'playlist';
+  const ml = branding?.media_links || {};
+
   const player = document.getElementById('video-player');
-  const label = document.getElementById('video-label');
+  const label  = document.getElementById('video-label');
 
   if (mode === 'live') {
-    const primary = data?.stream_links?.find(l => l.is_primary) || data?.stream_links?.[0];
-    if (primary) {
-      // Convert watch URL to embed URL if needed
-      const embedUrl = primary.url
-        .replace('watch?v=', 'embed/')
-        .replace('youtu.be/', 'www.youtube.com/embed/');
+    // Prefer show's primary stream_link; fall back to branding stream_live URL
+    const primary = show?.stream_links?.find(l => l.is_primary) || show?.stream_links?.[0];
+    const rawUrl = primary?.url || ml.stream_live;
+    const embedUrl = toEmbedUrl(rawUrl);
+    if (embedUrl) {
       player.src = embedUrl;
       player.style.display = 'block';
       if (label) label.textContent = '🔴 Live Now';
+    } else {
+      player.style.display = 'none';
     }
   } else if (mode === 'playlist') {
-    player.src = getRandomPlaylistEmbed();
+    const embedUrl = toEmbedUrl(ml.stream_playlist) || getFallbackPlaylistEmbed();
+    player.src = embedUrl;
     player.style.display = 'block';
     if (label) label.textContent = '🎬 Recent Shows';
+  } else if (mode === 'recent') {
+    const embedUrl = toEmbedUrl(ml.stream_recent) || getFallbackPlaylistEmbed();
+    player.src = embedUrl;
+    player.style.display = 'block';
+    if (label) label.textContent = '📼 Recent Episodes';
   } else {
-    // mode === 'off' — hide the player entirely
     player.style.display = 'none';
   }
 }
 
 loadStreamMode();
 
-// ── Load next show from Supabase ──────────────────────────────
+// ── Load next show ────────────────────────────────────────────
 async function loadNextShow() {
   const { data, error } = await supabase
     .from('shows')
@@ -127,7 +146,7 @@ async function loadBranding() {
   const { data } = await supabase
     .from('branding')
     .select('*')
-    .eq('active', true)
+    .eq('is_active', true)
     .maybeSingle();
 
   if (!data) return;

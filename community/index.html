@@ -6,170 +6,122 @@
   <title>Community — Newscapes Live</title>
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    /* Auth Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.75); z-index: 200;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
+    /* ── Auth Screens ────────────────────────────────────────── */
+    .auth-screen {
+      display: none; max-width: 380px; margin: 2rem auto;
       background: var(--surface); border-radius: var(--radius);
-      padding: 2rem; width: 100%; max-width: 360px;
-      border: 1px solid var(--surface2);
+      padding: 2rem; border: 1px solid var(--surface2);
     }
-    .modal h2 { color: var(--accent); margin-bottom: 1rem; }
-    .modal input {
-      width: 100%; padding: .6rem;
+    .auth-screen.active { display: block; }
+    .auth-screen h2 { color: var(--accent); margin-bottom: 1.25rem; font-size: 1.3rem; }
+    .auth-screen input, .auth-screen select {
+      width: 100%; padding: .65rem .8rem;
       border-radius: 6px; border: 1px solid var(--surface2);
       background: var(--surface2); color: var(--text);
-      margin-bottom: .6rem; font-size: .95rem;
+      margin-bottom: .75rem; font-size: .97rem;
+      box-sizing: border-box;
     }
-    .modal-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
-    .modal-tabs button {
-      flex: 1; padding: .4rem; border-radius: 6px;
-      border: 1px solid var(--surface2);
-      background: transparent; color: var(--muted); cursor: pointer;
+    .auth-screen input:focus, .auth-screen select:focus { outline: 1px solid var(--accent); }
+    .auth-hint {
+      font-size: .85rem; margin-top: .5rem; min-height: 1.2em;
+      line-height: 1.4;
     }
-    .modal-tabs button.active {
-      background: var(--accent); color: #000; border-color: var(--accent);
+    .auth-hint.err { color: #e05; }
+    .auth-hint.ok { color: var(--accent); }
+    .auth-hint a { color: inherit; text-decoration: underline; cursor: pointer; }
+    .auth-links { margin-top: .9rem; display: flex; flex-direction: column; gap: .4rem; }
+    .auth-links button {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: .85rem; text-align: left; padding: 0;
     }
-    .auth-error { color: #e05; font-size: .85rem; margin-top: .4rem; }
-
-    /* Post Card */
+    .auth-links button:hover { color: var(--accent); }
+    /* Return-user prompt */
+    .return-screen {
+      display: none; max-width: 380px; margin: 2rem auto;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 2rem; border: 1px solid var(--surface2); text-align: center;
+    }
+    .return-screen.active { display: block; }
+    .return-screen .return-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--surface2); margin: 0 auto .9rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+    }
+    .return-screen h2 { color: var(--accent); margin-bottom: .4rem; font-size: 1.2rem; }
+    .return-screen p { color: var(--muted); font-size: .9rem; margin-bottom: 1.25rem; }
+    .return-screen .btn-row { display: flex; gap: .65rem; justify-content: center; }
+    /* Account Dashboard */
+    .account-screen {
+      display: none; max-width: 380px; margin: 2rem auto;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 2rem; border: 1px solid var(--surface2);
+    }
+    .account-screen.active { display: block; }
+    .account-screen h2 { color: var(--accent); margin-bottom: 1.25rem; }
+    .account-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .5rem 0; border-bottom: 1px solid var(--surface2); font-size: .92rem;
+    }
+    .account-row:last-of-type { border-bottom: none; }
+    .account-row .label { color: var(--muted); font-size: .82rem; }
+    .account-actions { margin-top: 1.25rem; display: flex; flex-direction: column; gap: .6rem; }
+    /* Community content */
     .post-card {
       background: var(--surface); border-radius: var(--radius);
       padding: 1.1rem 1.25rem; margin-bottom: .85rem;
       border: 1px solid var(--surface2);
     }
-    .post-header {
-      display: flex; justify-content: space-between;
-      align-items: center; margin-bottom: .5rem;
-    }
+    .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
     .post-author { font-weight: 700; font-size: .95rem; }
     .post-time { color: var(--muted); font-size: .78rem; }
     .post-body { font-size: .97rem; margin-bottom: .75rem; line-height: 1.55; }
     .post-actions { display: flex; gap: 1rem; }
-    .post-actions button {
-      background: none; border: none; color: var(--muted);
-      cursor: pointer; font-size: .88rem; padding: 0;
-      transition: color .15s;
-    }
+    .post-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .88rem; padding: 0; transition: color .15s; }
     .post-actions button:hover { color: var(--accent); }
     .post-actions button.liked { color: var(--accent); }
-
-    /* Comments */
-    .comments-section {
-      margin-top: .75rem; padding-top: .75rem;
-      border-top: 1px solid var(--surface2);
-      display: none;
-    }
+    .comments-section { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--surface2); display: none; }
     .comments-section.open { display: block; }
-    .comment-item {
-      font-size: .88rem; padding: .35rem 0;
-      border-bottom: 1px solid var(--surface2);
-      color: var(--muted);
-    }
+    .comment-item { font-size: .88rem; padding: .35rem 0; border-bottom: 1px solid var(--surface2); color: var(--muted); }
     .comment-item:last-child { border-bottom: none; }
     .comment-author { color: var(--text); font-weight: 600; }
-    .comment-form {
-      display: flex; gap: .5rem; margin-top: .6rem;
-    }
-    .comment-form input {
-      flex: 1; padding: .4rem .7rem;
-      border-radius: 6px; border: 1px solid var(--surface2);
-      background: var(--surface2); color: var(--text); font-size: .88rem;
-    }
-    .comment-form button {
-      padding: .4rem .9rem;
-      background: var(--accent); color: #000;
-      border: none; border-radius: 6px;
-      cursor: pointer; font-weight: 600; font-size: .85rem;
-    }
-
-    /* Compose */
-    .compose-box {
-      background: var(--surface); border-radius: var(--radius);
-      padding: 1rem 1.25rem; margin-bottom: 1.25rem;
-      border: 1px solid var(--surface2);
-    }
-    .compose-box textarea {
-      width: 100%; background: var(--surface2);
-      border: 1px solid var(--surface2); border-radius: 6px;
-      color: var(--text); padding: .6rem; font-size: .95rem;
-      resize: vertical; min-height: 70px; font-family: inherit;
-    }
+    .comment-form { display: flex; gap: .5rem; margin-top: .6rem; }
+    .comment-form input { flex: 1; padding: .4rem .7rem; border-radius: 6px; border: 1px solid var(--surface2); background: var(--surface2); color: var(--text); font-size: .88rem; }
+    .comment-form button { padding: .4rem .9rem; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: .85rem; }
+    .compose-box { background: var(--surface); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--surface2); }
+    .compose-box textarea { width: 100%; background: var(--surface2); border: 1px solid var(--surface2); border-radius: 6px; color: var(--text); padding: .6rem; font-size: .95rem; resize: vertical; min-height: 70px; font-family: inherit; box-sizing: border-box; }
     .compose-box textarea:focus { outline: 1px solid var(--accent); }
-    .compose-footer {
-      display: flex; justify-content: space-between;
-      align-items: center; margin-top: .5rem;
-    }
+    .compose-footer { display: flex; justify-content: space-between; align-items: center; margin-top: .5rem; }
     .compose-hint { color: var(--muted); font-size: .82rem; }
-
-    /* Poll */
-    .poll-card {
-      background: var(--surface); border-radius: var(--radius);
-      padding: 1.25rem; margin-bottom: .85rem;
-      border: 1px solid var(--surface2);
-    }
+    .poll-card { background: var(--surface); border-radius: var(--radius); padding: 1.25rem; margin-bottom: .85rem; border: 1px solid var(--surface2); }
     .poll-question { font-weight: 700; margin-bottom: .9rem; font-size: 1rem; }
-    .poll-option {
-      position: relative; margin-bottom: .5rem;
-    }
-    .poll-option button {
-      width: 100%; text-align: left; padding: .55rem .9rem;
-      border-radius: 6px; border: 1px solid var(--surface2);
-      background: var(--surface2); color: var(--text);
-      cursor: pointer; font-size: .92rem; transition: border-color .15s;
-      position: relative; overflow: hidden;
-    }
+    .poll-option { position: relative; margin-bottom: .5rem; }
+    .poll-option button { width: 100%; text-align: left; padding: .55rem .9rem; border-radius: 6px; border: 1px solid var(--surface2); background: var(--surface2); color: var(--text); cursor: pointer; font-size: .92rem; transition: border-color .15s; position: relative; overflow: hidden; }
     .poll-option button:hover:not(:disabled) { border-color: var(--accent); }
     .poll-option button:disabled { cursor: default; }
-    .poll-bar {
-      position: absolute; left: 0; top: 0; bottom: 0;
-      background: rgba(232,184,75,.15); border-radius: 6px;
-      transition: width .4s;
-    }
+    .poll-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(232,184,75,.15); border-radius: 6px; transition: width .4s; }
     .poll-label { position: relative; z-index: 1; }
-    .poll-pct {
-      position: absolute; right: .8rem; top: 50%; transform: translateY(-50%);
-      font-size: .82rem; color: var(--accent); font-weight: 700; z-index: 1;
-    }
+    .poll-pct { position: absolute; right: .8rem; top: 50%; transform: translateY(-50%); font-size: .82rem; color: var(--accent); font-weight: 700; z-index: 1; }
     .poll-voted { color: var(--accent); font-size: .78rem; margin-top: .3rem; }
     .poll-total { color: var(--muted); font-size: .78rem; margin-top: .5rem; }
-
-    /* Leaderboard */
-    .lb-row {
-      display: flex; align-items: center; gap: .9rem;
-      padding: .55rem 0; border-bottom: 1px solid var(--surface2);
-    }
+    .lb-row { display: flex; align-items: center; gap: .9rem; padding: .55rem 0; border-bottom: 1px solid var(--surface2); }
     .lb-row:last-child { border-bottom: none; }
     .lb-rank { width: 24px; text-align: center; font-weight: 700; color: var(--muted); font-size: .9rem; }
     .lb-rank.top { color: var(--accent); }
-    .lb-avatar {
-      width: 34px; height: 34px; border-radius: 50%;
-      background: var(--surface2); object-fit: cover;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .9rem; color: var(--muted); flex-shrink: 0;
-    }
+    .lb-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: .9rem; color: var(--muted); flex-shrink: 0; }
     .lb-name { flex: 1; font-size: .95rem; font-weight: 600; }
     .lb-pts { color: var(--accent); font-weight: 700; font-size: .9rem; }
     .lb-badge { font-size: .75rem; background: var(--surface2); padding: .15rem .45rem; border-radius: 99px; color: var(--muted); }
-
-    /* Tabs */
-    .tab-bar {
-      display: flex; gap: .5rem; margin-bottom: 1.5rem;
-      border-bottom: 2px solid var(--surface2); padding-bottom: .5rem;
-    }
-    .tab-bar button {
-      background: none; border: none; color: var(--muted);
-      font-size: .97rem; padding: .3rem .7rem;
-      cursor: pointer; border-radius: 6px 6px 0 0;
-      transition: color .15s;
-    }
+    .tab-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--surface2); padding-bottom: .5rem; }
+    .tab-bar button { background: none; border: none; color: var(--muted); font-size: .97rem; padding: .3rem .7rem; cursor: pointer; border-radius: 6px 6px 0 0; transition: color .15s; }
     .tab-bar button.active { color: var(--accent); font-weight: 700; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
+    /* Hero image */
+    .brewery-hero {
+      width: 100%; max-height: 220px; object-fit: cover;
+      border-radius: var(--radius); margin-bottom: 1rem; display: block;
+    }
   </style>
 </head>
 <body>
@@ -179,7 +131,7 @@
     <div class="container">
       <nav>
         <div class="nav-brand">
-          <img class="brand-logo" src="" alt="">
+          <img class="brand-logo" src="" alt="" style="display:none">
           <a href="../" class="brand-name" style="color:var(--accent)">Newscapes Live</a>
         </div>
         <div class="nav-links">
@@ -187,83 +139,160 @@
           <a href="./">Community</a>
           <a href="../support/">Support</a>
           <span id="nav-user" style="color:var(--muted);font-size:.85rem"></span>
-          <button class="btn btn-outline" id="auth-btn" style="padding:.3rem .8rem;font-size:.85rem">Sign In</button>
+          <button class="btn btn-outline" id="nav-auth-btn" style="padding:.3rem .8rem;font-size:.85rem">Sign In</button>
         </div>
       </nav>
     </div>
   </header>
 
-  <!-- AUTH MODAL -->
-  <div class="modal-overlay" id="auth-modal">
-    <div class="modal">
-      <div class="modal-tabs">
-        <button class="active" id="tab-signin">Sign In</button>
-        <button id="tab-signup">Sign Up</button>
+  <!-- ── AUTH AREA ─────────────────────────────────────────────── -->
+  <div id="auth-area">
+
+    <!-- Return-user prompt -->
+    <div class="return-screen" id="screen-return">
+      <div class="return-avatar" id="return-avatar">👤</div>
+      <h2 id="return-name">Welcome back!</h2>
+      <p id="return-tier"></p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="return-continue">Continue</button>
+        <button class="btn btn-outline" id="return-signout">Sign Out</button>
       </div>
-      <input id="auth-email" type="email" placeholder="Email">
-      <input id="auth-pass" type="password" placeholder="Password">
-      <input id="auth-username" type="text" placeholder="Username (sign up only)" style="display:none">
-      <button class="btn btn-primary" id="auth-submit" style="width:100%">Sign In</button>
-      <p class="auth-error" id="auth-error"></p>
-      <button id="auth-close" style="background:none;border:none;color:var(--muted);margin-top:.75rem;cursor:pointer;font-size:.85rem">Cancel</button>
     </div>
-  </div>
 
-  <!-- HERO -->
-  <section class="hero" style="padding:2rem 1.25rem 1.25rem">
-    <div class="container">
-      <h1 style="color:var(--accent);margin-bottom:.3rem">Community</h1>
-      <p style="color:var(--muted)">Message board &middot; Polls &middot; Leaderboard</p>
-    </div>
-  </section>
-
-  <!-- MAIN -->
-  <section>
-    <div class="container">
-      <div class="tab-bar">
-        <button class="active" data-tab="board">💬 Board</button>
-        <button data-tab="polls">📊 Polls</button>
-        <button data-tab="leaderboard">🏆 Leaderboard</button>
+    <!-- Sign In -->
+    <div class="auth-screen active" id="screen-signin">
+      <h2>Sign In</h2>
+      <input id="si-email" type="email" placeholder="Email">
+      <input id="si-pass" type="password" placeholder="Password">
+      <button class="btn btn-primary" id="si-submit" style="width:100%">Sign In</button>
+      <div class="auth-hint" id="si-hint"></div>
+      <div class="auth-links">
+        <button id="si-to-signup">Don't have an account? Sign up →</button>
+        <button id="si-to-reset">Forgot password?</button>
       </div>
+    </div>
 
-      <!-- BOARD -->
-      <div class="tab-panel active" id="tab-board">
-        <div id="compose-area" style="display:none">
-          <div class="compose-box">
-            <textarea id="post-input" placeholder="What's on your mind?"></textarea>
-            <div class="compose-footer">
-              <span class="compose-hint">Be kind &mdash; this is a community space.</span>
-              <button class="btn btn-primary" id="post-submit" style="padding:.45rem 1.1rem">Post</button>
+    <!-- Sign Up -->
+    <div class="auth-screen" id="screen-signup">
+      <h2>Create Account</h2>
+      <input id="su-email" type="email" placeholder="Email">
+      <input id="su-pass" type="password" placeholder="Password (min 6 characters)">
+      <input id="su-username" type="text" placeholder="Username">
+      <select id="su-tier">
+        <option value="viewer">Viewer — browse the community</option>
+        <option value="member" selected>Member — post, vote, and comment</option>
+        <option value="supporter">Supporter — member + recognition wall listing</option>
+      </select>
+      <button class="btn btn-primary" id="su-submit" style="width:100%">Create Account</button>
+      <div class="auth-hint" id="su-hint"></div>
+      <div class="auth-links">
+        <button id="su-to-signin">Already have an account? Sign in →</button>
+      </div>
+    </div>
+
+    <!-- Password Reset -->
+    <div class="auth-screen" id="screen-reset">
+      <h2>Reset Password</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem">Enter your email and we'll send a reset link.</p>
+      <input id="rs-email" type="email" placeholder="Email">
+      <button class="btn btn-primary" id="rs-submit" style="width:100%">Send Reset Link</button>
+      <div class="auth-hint" id="rs-hint"></div>
+      <div class="auth-links">
+        <button id="rs-to-signin">← Back to Sign In</button>
+      </div>
+    </div>
+
+    <!-- Account Dashboard -->
+    <div class="account-screen" id="screen-account">
+      <h2>Your Account</h2>
+      <div class="account-row"><span class="label">Username</span><strong id="acc-username"></strong></div>
+      <div class="account-row"><span class="label">Email</span><span id="acc-email" style="color:var(--muted);font-size:.88rem"></span></div>
+      <div class="account-row"><span class="label">Tier</span><span id="acc-tier" style="color:var(--accent);font-weight:700"></span></div>
+      <div class="account-row"><span class="label">Points</span><span id="acc-points"></span></div>
+      <div class="account-row"><span class="label">Member since</span><span id="acc-since" style="color:var(--muted);font-size:.88rem"></span></div>
+      <div class="account-actions">
+        <button class="btn btn-outline" id="acc-change-pass" style="width:100%">Change Password</button>
+        <div id="acc-pass-form" style="display:none;margin-top:.5rem">
+          <input id="acc-new-pass" type="password" placeholder="New password" style="width:100%;padding:.6rem;border-radius:6px;border:1px solid var(--surface2);background:var(--surface2);color:var(--text);font-size:.95rem;box-sizing:border-box;margin-bottom:.5rem">
+          <button class="btn btn-primary" id="acc-pass-save" style="width:100%">Save Password</button>
+          <div class="auth-hint" id="acc-pass-hint"></div>
+        </div>
+        <button class="btn btn-outline" id="acc-back" style="width:100%">← Back to Community</button>
+        <button class="btn btn-outline" id="acc-signout" style="width:100%;color:#e05;border-color:#e05">Sign Out</button>
+      </div>
+    </div>
+
+  </div><!-- /auth-area -->
+
+  <!-- ── COMMUNITY CONTENT (hidden until signed in or bypassed) ── -->
+  <div id="community-content" style="display:none">
+
+    <!-- HERO -->
+    <section style="padding:1.5rem 1.25rem .75rem">
+      <div class="container">
+        <a href="https://www.newscapesbrewing.com/" target="_blank" rel="noopener">
+          <img
+            src="https://images.squarespace-cdn.com/content/v1/5e9c4e4a20d3be53b4e4d9d4/1587401600000-placeholder/newscapes-brewing.jpg"
+            alt="Newscapes Brewing"
+            class="brewery-hero"
+            onerror="this.style.display='none'"
+          >
+        </a>
+        <h1 style="color:var(--accent);margin-bottom:.3rem">Community</h1>
+        <p style="color:var(--muted)">Message board &middot; Polls &middot; Leaderboard</p>
+      </div>
+    </section>
+
+    <!-- MAIN -->
+    <section>
+      <div class="container">
+        <div class="tab-bar">
+          <button class="active" data-tab="board">💬 Board</button>
+          <button data-tab="polls">📊 Polls</button>
+          <button data-tab="leaderboard">🏆 Leaderboard</button>
+        </div>
+
+        <!-- BOARD -->
+        <div class="tab-panel active" id="tab-board">
+          <div id="compose-area" style="display:none">
+            <div class="compose-box">
+              <textarea id="post-input" placeholder="What's on your mind?"></textarea>
+              <div class="compose-footer">
+                <span class="compose-hint">Be kind &mdash; this is a community space.</span>
+                <button class="btn btn-primary" id="post-submit" style="padding:.45rem 1.1rem">Post</button>
+              </div>
             </div>
           </div>
+          <div id="signin-prompt" class="card" style="text-align:center;margin-bottom:1.25rem;display:none">
+            <p style="margin-bottom:.75rem">Sign in to post and join the conversation.</p>
+            <button class="btn btn-outline" id="prompt-signin">Sign In / Sign Up</button>
+          </div>
+          <div id="posts-feed"><p style="color:var(--muted)">Loading posts...</p></div>
         </div>
-        <div id="signin-prompt" class="card" style="text-align:center;margin-bottom:1.25rem">
-          <p style="margin-bottom:.75rem">Sign in to post and join the conversation.</p>
-          <button class="btn btn-outline" id="prompt-signin">Sign In / Sign Up</button>
+
+        <!-- POLLS -->
+        <div class="tab-panel" id="tab-polls">
+          <div id="polls-container"><p style="color:var(--muted)">Loading polls...</p></div>
         </div>
-        <div id="posts-feed"><p style="color:var(--muted)">Loading posts...</p></div>
-      </div>
 
-      <!-- POLLS -->
-      <div class="tab-panel" id="tab-polls">
-        <div id="polls-container"><p style="color:var(--muted)">Loading polls...</p></div>
-      </div>
-
-      <!-- LEADERBOARD -->
-      <div class="tab-panel" id="tab-leaderboard">
-        <div class="card">
-          <p style="color:var(--muted);font-size:.88rem;margin-bottom:1rem">
-            Earn points by posting, commenting, voting, and supporting the show.
-          </p>
-          <div id="lb-list"><p style="color:var(--muted)">Loading...</p></div>
+        <!-- LEADERBOARD -->
+        <div class="tab-panel" id="tab-leaderboard">
+          <div class="card">
+            <p style="color:var(--muted);font-size:.88rem;margin-bottom:1rem">
+              Earn points by posting, commenting, voting, and supporting the show.
+            </p>
+            <div id="lb-list"><p style="color:var(--muted)">Loading...</p></div>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <footer>
-    <p>Newscapes Live &mdash; <a href="../">Home</a> &mdash; <a href="../support/">Support the Show</a></p>
-  </footer>
+    <footer>
+      <p>Newscapes Live &mdash; <a href="../">Home</a> &mdash; <a href="../support/">Support the Show</a><br>
+      <span style="color:var(--muted);font-size:.82rem">Powered by <a href="https://andredavisme.github.io/207analytix/" target="_blank" rel="noopener" style="color:var(--muted)">207 Analytix</a></span></p>
+    </footer>
+
+  </div><!-- /community-content -->
 
   <script type="module">
     import {
@@ -277,7 +306,193 @@
     // Load admin launcher lazily — must never crash this page
     import('../js/admin-launcher.js').catch(e => console.warn('Admin launcher unavailable:', e.message));
 
-    // ── Tabs ────────────────────────────────────────────────────
+    // ── Screen router ─────────────────────────────────────────────
+    const SCREENS = ['screen-return','screen-signin','screen-signup','screen-reset','screen-account'];
+    function showScreen(id) {
+      SCREENS.forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.classList.remove('active');
+      });
+      if (id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+      }
+      document.getElementById('auth-area').style.display = id ? 'block' : 'none';
+      document.getElementById('community-content').style.display = id ? 'none' : 'block';
+    }
+    function showCommunity() { showScreen(null); }
+
+    // ── Nav auth button + account link ─────────────────────────
+    document.getElementById('nav-auth-btn').addEventListener('click', () => {
+      if (currentUser) showScreen('screen-account');
+      else showScreen('screen-signin');
+    });
+
+    // ── Return screen ─────────────────────────────────────────────
+    document.getElementById('return-continue').addEventListener('click', () => {
+      showCommunity(); renderPosts();
+    });
+    document.getElementById('return-signout').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      showScreen('screen-signin');
+    });
+
+    // ── Sign In ───────────────────────────────────────────────────
+    document.getElementById('si-to-signup').addEventListener('click', () => showScreen('screen-signup'));
+    document.getElementById('si-to-reset').addEventListener('click', () => showScreen('screen-reset'));
+    document.getElementById('si-submit').addEventListener('click', async () => {
+      const email = document.getElementById('si-email').value.trim();
+      const pass  = document.getElementById('si-pass').value;
+      const hint  = document.getElementById('si-hint');
+      hint.textContent = ''; hint.className = 'auth-hint';
+      if (!email || !pass) { hint.textContent = 'Email and password are required.'; hint.classList.add('err'); return; }
+      const btn = document.getElementById('si-submit');
+      btn.disabled = true; btn.textContent = 'Signing in...';
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) {
+          hint.classList.add('err');
+          if (error.message.toLowerCase().includes('invalid') || error.message.toLowerCase().includes('credentials')) {
+            hint.innerHTML = `We don't see that account. <a id="hint-to-signup">Sign up instead?</a>`;
+            document.getElementById('hint-to-signup')?.addEventListener('click', () => {
+              document.getElementById('su-email').value = email;
+              showScreen('screen-signup');
+            });
+          } else {
+            hint.textContent = error.message;
+          }
+        }
+        // on success, onAuthChange will fire and route to community
+      } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
+    });
+
+    // ── Sign Up ───────────────────────────────────────────────────
+    document.getElementById('su-to-signin').addEventListener('click', () => showScreen('screen-signin'));
+    document.getElementById('su-submit').addEventListener('click', async () => {
+      const email    = document.getElementById('su-email').value.trim();
+      const pass     = document.getElementById('su-pass').value;
+      const username = document.getElementById('su-username').value.trim();
+      const tier     = document.getElementById('su-tier').value;
+      const hint     = document.getElementById('su-hint');
+      hint.textContent = ''; hint.className = 'auth-hint';
+      if (!email || !pass || !username) { hint.textContent = 'All fields are required.'; hint.classList.add('err'); return; }
+      if (username.length < 3) { hint.textContent = 'Username must be at least 3 characters.'; hint.classList.add('err'); return; }
+      if (pass.length < 6) { hint.textContent = 'Password must be at least 6 characters.'; hint.classList.add('err'); return; }
+      const btn = document.getElementById('su-submit');
+      btn.disabled = true; btn.textContent = 'Creating account...';
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email, password: pass,
+          options: { data: { username } }
+        });
+        if (error) {
+          hint.classList.add('err');
+          if (error.message.toLowerCase().includes('already') || error.message.toLowerCase().includes('registered')) {
+            hint.innerHTML = `An account with that email already exists. <a id="hint-to-signin">Sign in instead?</a>`;
+            document.getElementById('hint-to-signin')?.addEventListener('click', () => {
+              document.getElementById('si-email').value = email;
+              showScreen('screen-signin');
+            });
+          } else {
+            hint.textContent = error.message;
+          }
+          return;
+        }
+        // Upsert profile with chosen tier
+        const uid = data?.user?.id;
+        if (uid) {
+          await supabase.from('profiles').upsert({
+            id: uid, username, full_name: username, show_role: tier
+          });
+        }
+        hint.classList.add('ok');
+        hint.textContent = '✓ Account created! Check your email to confirm, then sign in.';
+        setTimeout(() => {
+          document.getElementById('si-email').value = email;
+          showScreen('screen-signin');
+        }, 2500);
+      } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+    });
+
+    // ── Password Reset ────────────────────────────────────────────
+    document.getElementById('rs-to-signin').addEventListener('click', () => showScreen('screen-signin'));
+    document.getElementById('rs-submit').addEventListener('click', async () => {
+      const email = document.getElementById('rs-email').value.trim();
+      const hint  = document.getElementById('rs-hint');
+      hint.textContent = ''; hint.className = 'auth-hint';
+      if (!email) { hint.textContent = 'Enter your email.'; hint.classList.add('err'); return; }
+      const btn = document.getElementById('rs-submit');
+      btn.disabled = true; btn.textContent = 'Sending...';
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.href
+        });
+        if (error) { hint.textContent = error.message; hint.classList.add('err'); }
+        else { hint.textContent = '✓ Reset link sent! Check your email.'; hint.classList.add('ok'); }
+      } finally { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
+    });
+
+    // ── Account Dashboard ─────────────────────────────────────────
+    document.getElementById('acc-back').addEventListener('click', () => { showCommunity(); renderPosts(); });
+    document.getElementById('acc-signout').addEventListener('click', async () => {
+      await supabase.auth.signOut(); showScreen('screen-signin');
+    });
+    document.getElementById('acc-change-pass').addEventListener('click', () => {
+      const form = document.getElementById('acc-pass-form');
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    });
+    document.getElementById('acc-pass-save').addEventListener('click', async () => {
+      const newPass = document.getElementById('acc-new-pass').value;
+      const hint = document.getElementById('acc-pass-hint');
+      hint.textContent = ''; hint.className = 'auth-hint';
+      if (!newPass || newPass.length < 6) { hint.textContent = 'Password must be at least 6 characters.'; hint.classList.add('err'); return; }
+      const { error } = await supabase.auth.updateUser({ password: newPass });
+      if (error) { hint.textContent = error.message; hint.classList.add('err'); }
+      else { hint.textContent = '✓ Password updated!'; hint.classList.add('ok'); document.getElementById('acc-new-pass').value = ''; }
+    });
+    function populateAccountScreen(user, profile) {
+      document.getElementById('acc-username').textContent = profile?.username || '—';
+      document.getElementById('acc-email').textContent = user.email;
+      document.getElementById('acc-tier').textContent = profile?.show_role || 'viewer';
+      document.getElementById('acc-points').textContent = (profile?.points_total || 0) + ' pts';
+      const since = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US',{month:'long',year:'numeric'}) : '—';
+      document.getElementById('acc-since').textContent = since;
+    }
+
+    // ── Prompt sign-in from board ─────────────────────────────────
+    document.getElementById('prompt-signin').addEventListener('click', () => showScreen('screen-signin'));
+
+    // ── Auth state handler ────────────────────────────────────────
+    function onAuthChange(user, profile) {
+      const btn = document.getElementById('nav-auth-btn');
+      const navUser = document.getElementById('nav-user');
+      if (user && profile) {
+        btn.textContent = profile.username || user.email;
+        navUser.textContent = '';
+        // Check if we were mid-session (return prompt) or just signed in
+        const currentScreen = SCREENS.find(s => document.getElementById(s)?.classList.contains('active'));
+        if (currentScreen === 'screen-return') {
+          // already handled by continue btn
+        } else if (['screen-signin','screen-signup','screen-reset'].includes(currentScreen)) {
+          // just signed in — go straight to community
+          showCommunity();
+        } else if (!currentScreen) {
+          // already in community — just update nav
+        }
+        // Update account screen if open
+        if (currentScreen === 'screen-account') populateAccountScreen(user, profile);
+        document.getElementById('compose-area').style.display = 'block';
+        document.getElementById('signin-prompt').style.display = 'none';
+      } else {
+        btn.textContent = 'Sign In';
+        navUser.textContent = '';
+        document.getElementById('compose-area').style.display = 'none';
+        document.getElementById('signin-prompt').style.display = 'block';
+      }
+      renderPosts();
+    }
+
+    // ── Tabs ──────────────────────────────────────────────────────
     document.querySelectorAll('.tab-bar button').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
@@ -289,100 +504,6 @@
       });
     });
 
-    // ── Auth Modal ────────────────────────────────────────────────
-    let authMode = 'signin';
-    const modal = document.getElementById('auth-modal');
-    const openModal = () => modal.classList.add('open');
-    const closeModal = () => { modal.classList.remove('open'); document.getElementById('auth-error').textContent = ''; };
-
-    document.getElementById('auth-btn').addEventListener('click', openModal);
-    document.getElementById('prompt-signin').addEventListener('click', openModal);
-    document.getElementById('auth-close').addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-    document.getElementById('tab-signin').addEventListener('click', () => {
-      authMode = 'signin';
-      document.getElementById('tab-signin').classList.add('active');
-      document.getElementById('tab-signup').classList.remove('active');
-      document.getElementById('auth-username').style.display = 'none';
-      document.getElementById('auth-submit').textContent = 'Sign In';
-    });
-    document.getElementById('tab-signup').addEventListener('click', () => {
-      authMode = 'signup';
-      document.getElementById('tab-signup').classList.add('active');
-      document.getElementById('tab-signin').classList.remove('active');
-      document.getElementById('auth-username').style.display = 'block';
-      document.getElementById('auth-submit').textContent = 'Create Account';
-    });
-
-    document.getElementById('auth-submit').addEventListener('click', async () => {
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-pass').value;
-      const username = document.getElementById('auth-username').value.trim();
-      const errEl = document.getElementById('auth-error');
-      const submitBtn = document.getElementById('auth-submit');
-      errEl.textContent = '';
-      errEl.style.color = '#e05';
-
-      // Validate
-      if (!email || !password) { errEl.textContent = 'Email and password are required.'; return; }
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = authMode === 'signup' ? 'Creating...' : 'Signing in...';
-
-      try {
-        if (authMode === 'signup') {
-          if (!username || username.length < 3) {
-            errEl.textContent = 'Username must be at least 3 characters.';
-            return;
-          }
-          const { error } = await supabase.auth.signUp({
-            email, password,
-            options: { data: { username } }
-          });
-          if (error) { errEl.textContent = error.message; return; }
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await supabase.from('profiles').upsert({ id: session.user.id, username, full_name: username });
-          }
-          errEl.style.color = 'var(--accent)';
-          errEl.textContent = 'Account created! Check your email to confirm.';
-        } else {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) { errEl.textContent = error.message; return; }
-          closeModal();
-        }
-      } catch (err) {
-        console.error('Auth error:', err);
-        errEl.textContent = err.message || 'Something went wrong. Check the console.';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = authMode === 'signup' ? 'Create Account' : 'Sign In';
-      }
-    });
-
-    // ── Auth State UI ─────────────────────────────────────────────
-    function onAuthChange(user, profile) {
-      const btn = document.getElementById('auth-btn');
-      const navUser = document.getElementById('nav-user');
-      const compose = document.getElementById('compose-area');
-      const prompt = document.getElementById('signin-prompt');
-      if (user && profile) {
-        btn.textContent = 'Sign Out';
-        btn.onclick = () => supabase.auth.signOut();
-        navUser.textContent = profile.username || user.email;
-        compose.style.display = 'block';
-        prompt.style.display = 'none';
-      } else {
-        btn.textContent = 'Sign In';
-        btn.onclick = openModal;
-        navUser.textContent = '';
-        compose.style.display = 'none';
-        prompt.style.display = 'block';
-      }
-      renderPosts();
-    }
-
     // ── Posts ─────────────────────────────────────────────────────
     function timeAgo(ts) {
       const diff = (Date.now() - new Date(ts)) / 1000;
@@ -391,18 +512,15 @@
       if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
       return `${Math.floor(diff/86400)}d ago`;
     }
-
     async function renderPosts() {
       const feed = document.getElementById('posts-feed');
       const posts = await loadPosts();
       if (!posts.length) { feed.innerHTML = '<p style="color:var(--muted)">No posts yet. Be the first!</p>'; return; }
-
       let myLikes = new Set();
       if (currentUser) {
         const { data } = await supabase.from('likes').select('post_id').eq('user_id', currentUser.id);
         myLikes = new Set((data || []).map(l => l.post_id));
       }
-
       feed.innerHTML = posts.map(p => {
         const liked = myLikes.has(p.id);
         const commentCount = p.comments?.length || 0;
@@ -421,106 +539,69 @@
           </div>
           <div class="post-body">${p.caption || ''}</div>
           <div class="post-actions">
-            <button class="like-btn ${liked ? 'liked' : ''}" data-id="${p.id}">
-              ${liked ? '❤️' : '🤍'} ${likeCount}
-            </button>
+            <button class="like-btn ${liked ? 'liked' : ''}" data-id="${p.id}">${liked ? '❤️' : '🤍'} ${likeCount}</button>
             <button class="comment-toggle" data-id="${p.id}">💬 ${commentCount}</button>
             ${canDelete ? `<button class="delete-post" data-id="${p.id}" style="margin-left:auto;color:var(--muted)">🗑</button>` : ''}
           </div>
           <div class="comments-section" id="comments-${p.id}">
             <div class="comments-list">${commentsHtml}</div>
-            ${currentUser ? `
-            <div class="comment-form">
-              <input type="text" placeholder="Add a comment..." data-post="${p.id}">
-              <button data-post="${p.id}">Send</button>
-            </div>` : ''}
+            ${currentUser ? `<div class="comment-form"><input type="text" placeholder="Add a comment..." data-post="${p.id}"><button data-post="${p.id}">Send</button></div>` : ''}
           </div>
         </div>`;
       }).join('');
-
       feed.querySelectorAll('.like-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-          if (!currentUser) { openModal(); return; }
-          await toggleLike(btn.dataset.id);
-          renderPosts();
+          if (!currentUser) { showScreen('screen-signin'); return; }
+          await toggleLike(btn.dataset.id); renderPosts();
         });
       });
-
       feed.querySelectorAll('.comment-toggle').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.getElementById('comments-' + btn.dataset.id).classList.toggle('open');
-        });
+        btn.addEventListener('click', () => document.getElementById('comments-' + btn.dataset.id).classList.toggle('open'));
       });
-
       feed.querySelectorAll('.comment-form button').forEach(btn => {
         btn.addEventListener('click', async () => {
           const input = feed.querySelector(`.comment-form input[data-post="${btn.dataset.post}"]`);
           if (!input.value.trim()) return;
           await addComment(btn.dataset.post, input.value.trim());
-          input.value = '';
-          renderPosts();
+          input.value = ''; renderPosts();
         });
       });
-
       feed.querySelectorAll('.delete-post').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this post?')) return;
-          await deletePost(btn.dataset.id);
-          renderPosts();
+          await deletePost(btn.dataset.id); renderPosts();
         });
       });
     }
-
     document.getElementById('post-submit').addEventListener('click', async () => {
       const input = document.getElementById('post-input');
-      const text = input.value.trim();
-      if (!text) return;
-      await createPost(text);
-      input.value = '';
-      renderPosts();
+      const text = input.value.trim(); if (!text) return;
+      await createPost(text); input.value = ''; renderPosts();
     });
 
-    // ── Polls ────────────────────────────────────────────────────
+    // ── Polls ─────────────────────────────────────────────────────
     async function renderPolls() {
       const container = document.getElementById('polls-container');
       const polls = await loadOpenPolls();
       if (!polls.length) { container.innerHTML = '<div class="card"><p style="color:var(--muted)">No active polls right now.</p></div>'; return; }
-
       const html = await Promise.all(polls.map(async poll => {
         const options = Array.isArray(poll.options) ? poll.options : JSON.parse(poll.options || '[]');
         const myVote = await getUserVote(poll.id);
         const results = myVote ? await getPollResults(poll.id) : {};
         const total = Object.values(results).reduce((a,b) => a+b, 0);
-
         const optHtml = options.map(opt => {
           const votes = results[opt] || 0;
           const pct = total ? Math.round((votes / total) * 100) : 0;
           const chosen = myVote === opt;
-          return `
-          <div class="poll-option">
-            <button data-poll="${poll.id}" data-choice="${opt}" ${myVote ? 'disabled' : ''}>
-              ${myVote ? `<div class="poll-bar" style="width:${pct}%"></div>` : ''}
-              <span class="poll-label">${chosen ? '✓ ' : ''}${opt}</span>
-              ${myVote ? `<span class="poll-pct">${pct}%</span>` : ''}
-            </button>
-          </div>`;
+          return `<div class="poll-option"><button data-poll="${poll.id}" data-choice="${opt}" ${myVote ? 'disabled' : ''}>${myVote ? `<div class="poll-bar" style="width:${pct}%"></div>` : ''}<span class="poll-label">${chosen ? '✓ ' : ''}${opt}</span>${myVote ? `<span class="poll-pct">${pct}%</span>` : ''}</button></div>`;
         }).join('');
-
-        return `
-        <div class="poll-card">
-          <div class="poll-question">${poll.question}</div>
-          ${optHtml}
-          ${myVote ? `<div class="poll-voted">You voted: ${myVote}</div><div class="poll-total">${total} vote${total!==1?'s':''}</div>` : '<div class="poll-voted" style="color:var(--muted)">Sign in to vote</div>'}
-        </div>`;
+        return `<div class="poll-card"><div class="poll-question">${poll.question}</div>${optHtml}${myVote ? `<div class="poll-voted">You voted: ${myVote}</div><div class="poll-total">${total} vote${total!==1?'s':''}</div>` : '<div class="poll-voted" style="color:var(--muted)">Sign in to vote</div>'}</div>`;
       }));
-
       container.innerHTML = html.join('');
-
       container.querySelectorAll('.poll-option button:not([disabled])').forEach(btn => {
         btn.addEventListener('click', async () => {
-          if (!currentUser) { openModal(); return; }
-          try { await castVote(btn.dataset.poll, btn.dataset.choice); renderPolls(); }
-          catch(e) { console.error(e); }
+          if (!currentUser) { showScreen('screen-signin'); return; }
+          try { await castVote(btn.dataset.poll, btn.dataset.choice); renderPolls(); } catch(e) { console.error(e); }
         });
       });
     }
@@ -533,18 +614,33 @@
       list.innerHTML = rows.map((r, i) => {
         const rank = i + 1;
         const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-        return `
-        <div class="lb-row">
-          <div class="lb-rank ${rank<=3?'top':''}">${medal}</div>
-          <div class="lb-avatar">${r.avatar_url?`<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:'👤'}</div>
-          <div class="lb-name">${r.username||'Anonymous'} <span class="lb-badge">${r.show_role}</span></div>
-          <div class="lb-pts">${r.points_total} pts</div>
-        </div>`;
+        return `<div class="lb-row"><div class="lb-rank ${rank<=3?'top':''}">` + medal + `</div><div class="lb-avatar">${r.avatar_url?`<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:'👤'}</div><div class="lb-name">${r.username||'Anonymous'} <span class="lb-badge">${r.show_role}</span></div><div class="lb-pts">${r.points_total} pts</div></div>`;
       }).join('');
     }
 
-    // ── Init ────────────────────────────────────────────────────────
-    initAuth(onAuthChange);
+    // ── Init ──────────────────────────────────────────────────────
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Returning user — show prompt instead of dumping them into community cold
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+        const displayName = profile?.username || session.user.email;
+        document.getElementById('return-name').textContent = `Welcome back, ${displayName}!`;
+        document.getElementById('return-tier').textContent = profile?.show_role ? `Tier: ${profile.show_role}` : '';
+        showScreen('screen-return');
+      } else {
+        showScreen('screen-signin');
+      }
+      initAuth(onAuthChange);
+    }
+
+    // Handle password reset redirect (token in URL hash)
+    if (window.location.hash.includes('type=recovery')) {
+      showScreen('screen-account');
+      document.getElementById('acc-change-pass').click();
+    }
+
+    init();
   </script>
 </body>
 </html>
